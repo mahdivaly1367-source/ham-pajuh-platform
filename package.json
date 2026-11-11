@@ -2,7 +2,9 @@
   "name": "hampajuh-platform",
   "version": "0.2.0",
   "private": true,
-  "engines": { "node": ">=20.9.0" },
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0",
     "build": "next build",
@@ -10,7 +12,9 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "tsx src/db/seed.ts"
+    "db:seed": "tsx src/db/seed.ts",
+    "test:smoke": "node scripts/smoke-test.mjs",
+    "test:ci": "npm run db:migrate && npm run db:seed && npm run typecheck && npm run build && npm run test:smoke"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "1.7.18",

@@ -12,6 +12,26 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hampajuh
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d hampajuh"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hampajuh
+      BETTER_AUTH_SECRET: ci-only-secret-not-used-outside-ephemeral-tests-2026
+      BETTER_AUTH_URL: http://localhost:3000
+      APP_URL: http://localhost:3000
+      NEXT_TELEMETRY_DISABLED: 1
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,9 +41,31 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install
+      - name: Apply database migrations
+        run: npm run db:migrate
+      - name: Seed scientific disciplines
+        run: npm run db:seed
       - name: Type check
         run: npm run typecheck
       - name: Production build
         run: npm run build
-        env:
-          NEXT_TELEMETRY_DISABLED: 1
+      - name: Start production server
+        run: |
+          npm run start > /tmp/hampajuh-next.log 2>&1 &
+          echo $! > /tmp/hampajuh-next.pid
+      - name: Wait for server
+        run: |
+          for attempt in {1..45}; do
+            if curl --fail --silent "$APP_URL/api/projects" >/dev/null; then
+              echo "HamPajuh API is responding."
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/hampajuh-next.log
+          exit 1
+      - name: Run API smoke tests
+        run: node scripts/smoke-test.mjs
+      - name: Show server logs on failure
+        if: failure()
+        run: cat /tmp/hampajuh-next.log
