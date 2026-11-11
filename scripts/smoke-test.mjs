@@ -87,6 +87,29 @@ async function main() {
   assert.equal(anonymousCreate.status, 401, "Anonymous project creation must be rejected.");
 
   const ownerCookie = await register("HamPajuh CI Owner");
+  const profileResponse = await request("/api/profile", {
+    headers: { cookie: ownerCookie }
+  });
+  assert.equal(profileResponse.status, 200, "Authenticated users should receive an editable profile.");
+  const profile = await profileResponse.json();
+  assert.ok(profile.profile?.handle, "A default profile handle should be provisioned on first access.");
+
+  const updatedProfileResponse = await request("/api/profile", {
+    method: "PUT",
+    headers: { "content-type": "application/json", cookie: ownerCookie },
+    body: JSON.stringify({
+      handle: "ci-researcher-" + randomUUID().slice(0, 6),
+      headline: "پژوهشگر آزمون هم‌پژوه",
+      bio: "پروفایل آزمایشی برای بررسی ذخیره و بازیابی اطلاعات.",
+      location: "آزمایشگاه CI",
+      website: "",
+      isPublic: true
+    })
+  });
+  assert.equal(updatedProfileResponse.status, 200, "Profile updates should be saved.");
+  const updatedProfile = await updatedProfileResponse.json();
+  assert.equal(updatedProfile.profile?.headline, "پژوهشگر آزمون هم‌پژوه");
+
   const publicProject = await createProject(
     ownerCookie,
     "public",
@@ -134,6 +157,7 @@ async function main() {
 
   console.log("PASS: anonymous writes are rejected");
   console.log("PASS: signup creates authenticated sessions");
+  console.log("PASS: first login provisions a profile and profile edits persist");
   console.log("PASS: authenticated users can create projects");
   console.log("PASS: private projects are excluded from public discovery");
   console.log("PASS: collaboration requests are recorded and duplicate requests are handled");

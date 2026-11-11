@@ -19,12 +19,12 @@ type Project = {
 };
 
 const seedProjects: Project[] = [
-  { id: 1, title: "نقشه بازِ کیفیت هوای شهرها", summary: "سامانه‌ای مشارکتی برای گردآوری، پاک‌سازی و نمایش داده‌های کیفیت هوا با امکان اتصال حسگرهای ارزان‌قیمت.", discipline: "محیط زیست", color: "mint", owner: "گروه داده‌باز", initials: "دب", updated: "۲ ساعت پیش", members: 8, stars: 126, tags: ["داده‌باز", "پایش محیطی", "Python"], stage: "در حال توسعه" },
+  { id: 1, title: "نقشه بازِ کیفیت هوای شهرها", summary: "سامانه‌ای مشارکتی برای گردآوری، پاک‌سازی و نمایش داده‌های کیفیت هوا با امکان اتصال حسگرهای ارزان‌قیمت.", discipline: "محیط زیست و زمین", color: "mint", owner: "گروه داده‌باز", initials: "دب", updated: "۲ ساعت پیش", members: 8, stars: 126, tags: ["داده‌باز", "پایش محیطی", "Python"], stage: "در حال توسعه" },
   { id: 2, title: "آزمایشگاه فارسیِ مدل‌های زبانی", summary: "ارزیابی شفاف مدل‌های زبانی فارسی؛ از کیفیت پاسخ و استدلال تا سوگیری و کارایی در کاربردهای واقعی.", discipline: "هوش مصنوعی", color: "violet", owner: "آزمایشگاه زبان", initials: "زف", updated: "امروز", members: 14, stars: 94, tags: ["NLP", "داده فارسی", "ارزیابی مدل"], stage: "پذیرای همکار" },
   { id: 3, title: "بازوی رباتیک کم‌هزینه و متن‌باز", summary: "طراحی مکانیکی، کنترل و ساخت نمونه‌ای ماژولار با قطعات قابل تولید در کارگاه و چاپ سه‌بعدی.", discipline: "مهندسی", color: "amber", owner: "کارگاه رباتیک", initials: "کر", updated: "دیروز", members: 6, stars: 71, tags: ["CAD", "کنترل", "چاپ سه‌بعدی"], stage: "نمونه‌سازی" },
-  { id: 4, title: "بانک داده گیاهان بومی ایران", summary: "مستندسازی گونه‌های گیاهی با داده‌های مکانی، تصویر، ویژگی‌های زیستی و منابع قابل ارجاع.", discipline: "زیست‌فناوری", color: "mint", owner: "زیست‌داده", initials: "زد", updated: "۳ روز پیش", members: 11, stars: 58, tags: ["تنوع زیستی", "داده علمی", "GIS"], stage: "گردآوری داده" },
-  { id: 5, title: "شبیه‌ساز تعاملی مدارهای الکتریکی", summary: "محیطی آموزشی و پژوهشی برای ساخت مدار، مشاهده رفتار زمانی و اشتراک‌گذاری آزمایش‌های الکترونیکی.", discipline: "علوم پایه", color: "blue", owner: "مدار باز", initials: "مب", updated: "۴ روز پیش", members: 5, stars: 43, tags: ["الکترونیک", "شبیه‌سازی", "آموزش"], stage: "در حال توسعه" },
-  { id: 6, title: "آرشیو روایت‌های شفاهی محلی", summary: "ثبت و نگهداری روایت‌ها و گویش‌های محلی با رعایت رضایت و حقوق مشارکت‌کنندگان.", discipline: "علوم انسانی", color: "rose", owner: "حافظه زنده", initials: "حز", updated: "یک هفته پیش", members: 9, stars: 37, tags: ["زبان‌شناسی", "آرشیو", "فرهنگ"], stage: "پذیرای همکار" }
+  { id: 4, title: "بانک داده گیاهان بومی ایران", summary: "مستندسازی گونه‌های گیاهی با داده‌های مکانی، تصویر، ویژگی‌های زیستی و منابع قابل ارجاع.", discipline: "زیست‌شناسی و زیست‌فناوری", color: "mint", owner: "زیست‌داده", initials: "زد", updated: "۳ روز پیش", members: 11, stars: 58, tags: ["تنوع زیستی", "داده علمی", "GIS"], stage: "گردآوری داده" },
+  { id: 5, title: "شبیه‌ساز تعاملی مدارهای الکتریکی", summary: "محیطی آموزشی و پژوهشی برای ساخت مدار، مشاهده رفتار زمانی و اشتراک‌گذاری آزمایش‌های الکترونیکی.", discipline: "فیزیک و علوم پایه", color: "blue", owner: "مدار باز", initials: "مب", updated: "۴ روز پیش", members: 5, stars: 43, tags: ["الکترونیک", "شبیه‌سازی", "آموزش"], stage: "در حال توسعه" },
+  { id: 6, title: "آرشیو روایت‌های شفاهی محلی", summary: "ثبت و نگهداری روایت‌ها و گویش‌های محلی با رعایت رضایت و حقوق مشارکت‌کنندگان.", discipline: "علوم انسانی و اجتماعی", color: "rose", owner: "حافظه زنده", initials: "حز", updated: "یک هفته پیش", members: 9, stars: 37, tags: ["زبان‌شناسی", "آرشیو", "فرهنگ"], stage: "پذیرای همکار" }
 ];
 
 const disciplines = ["همه حوزه‌ها", "هوش مصنوعی", "نرم‌افزار و علوم رایانه", "مهندسی", "مکانیک و ساخت", "الکترونیک و برق", "هوافضا", "رباتیک", "زیست‌شناسی و زیست‌فناوری", "فیزیک و علوم پایه", "محیط زیست و زمین", "ریاضیات و آمار", "علوم انسانی و اجتماعی", "آموزش و یادگیری", "میان‌رشته‌ای"];
@@ -204,6 +204,7 @@ export default function HomePage() {
         <div className="topbar-actions">
           <button className="language-button" type="button"><Icon name="globe" size={16} /> FA</button>
           <Link className="login-button" href="/auth">ورود / ثبت‌نام</Link>
+          <Link className="login-button" href="/profile">پروفایل من</Link>
           <button className="header-cta" type="button" onClick={() => setShowCreate(true)}><Icon name="plus" size={17} /> پروژه جدید</button>
           <button className="mobile-menu-button" type="button" onClick={() => setMenuOpen((value) => !value)} aria-label="باز کردن منو"><Icon name={menuOpen ? "close" : "menu"} size={21} /></button>
         </div>
@@ -250,7 +251,7 @@ export default function HomePage() {
 
         <div className="catalog-layout">
           <aside className="filter-panel" id="disciplines">
-            <div className="filter-title"><span><Icon name="layers" size={17} /> حوزه‌های علمی</span><span className="filter-count">۰۷</span></div>
+            <div className="filter-title"><span><Icon name="layers" size={17} /> حوزه‌های علمی</span><span className="filter-count">۱۵</span></div>
             <div className="discipline-list">
               {disciplines.map((discipline, index) => <button className={activeDiscipline === discipline ? "discipline-option selected" : "discipline-option"} key={discipline} type="button" onClick={() => setActiveDiscipline(discipline)}><span className={"discipline-dot dot-" + index} /><span>{discipline}</span>{activeDiscipline === discipline && <Icon name="chevron" size={15} />}</button>)}
             </div>

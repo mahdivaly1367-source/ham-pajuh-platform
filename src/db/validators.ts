@@ -8,4 +8,14 @@ export const createProjectInput = z.object({
   visibility: z.enum(["public", "private", "unlisted"]).default("private")
 });
 
+export const updateProfileInput = z.object({
+  handle: z.string().trim().toLowerCase().min(3).max(40).regex(/^[a-z0-9][a-z0-9-]*$/),
+  headline: z.string().trim().max(160).optional().default(""),
+  bio: z.string().trim().max(2000).optional().default(""),
+  location: z.string().trim().max(120).optional().default(""),
+  website: z.union([z.string().trim().url(), z.literal("")]).optional().default(""),
+  isPublic: z.boolean().default(true)
+});
+
 export type CreateProjectInput = z.infer<typeof createProjectInput>;
+export type UpdateProfileInput = z.infer<typeof updateProfileInput>;
