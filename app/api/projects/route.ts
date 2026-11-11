@@ -31,6 +31,7 @@ function unavailable() {
 
 function toProjectCard(row: {
   id: string;
+  slug: string;
   title: string;
   summary: string;
   status: string;
@@ -42,6 +43,7 @@ function toProjectCard(row: {
 }) {
   return {
     id: row.id,
+    slug: row.slug,
     title: row.title,
     summary: row.summary,
     discipline: row.disciplineName ?? "میان‌رشته‌ای",
@@ -64,6 +66,7 @@ export async function GET() {
     const rows = await db
       .select({
         id: projects.id,
+        slug: projects.slug,
         title: projects.title,
         summary: projects.summary,
         status: projects.status,
@@ -178,6 +181,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       project: toProjectCard({
         id: created.id,
+        slug: created.slug,
         title: created.title,
         summary: created.summary,
         status: created.status,
