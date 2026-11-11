@@ -16,7 +16,7 @@ export async function POST(
 
   try {
     const session = await getAuth().api.getSession({ headers: request.headers });
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "برای درخواست همکاری ابتدا وارد حساب کاربری شوید." }, { status: 401 });
     }
 
@@ -68,6 +68,8 @@ export async function POST(
         message: ""
       })
       .returning({ id: collaborationRequests.id });
+
+    if (!created) throw new Error("Collaboration request insert returned no row.");
 
     await db.insert(activityEvents).values({
       projectId,
