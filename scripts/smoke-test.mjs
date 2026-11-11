@@ -110,14 +110,6 @@ async function main() {
   const updatedProfile = await updatedProfileResponse.json();
   assert.equal(updatedProfile.profile?.headline, "پژوهشگر آزمون هم‌پژوه");
 
-  const publicProfileResponse = await request(
-    "/api/profiles/" + encodeURIComponent(updatedProfile.profile.handle)
-  );
-  assert.equal(publicProfileResponse.status, 200, "A public profile should be readable without a login.");
-  const publicProfile = await publicProfileResponse.json();
-  assert.equal(publicProfile.profile?.handle, updatedProfile.profile.handle);
-  assert.equal(publicProfile.user?.email, undefined, "Public profiles must not expose account email addresses.");
-
   const publicProject = await createProject(
     ownerCookie,
     "public",
@@ -140,6 +132,31 @@ async function main() {
     !publicProjects.some((item) => item.id === privateProject.id),
     "The private project must not appear in the public listing."
   );
+
+  const publicProfilePath = "/api/profiles/" + encodeURIComponent(updatedProfile.profile.handle);
+  const publicProfileResponse = await request(publicProfilePath);
+  assert.equal(publicProfileResponse.status, 200, "A public profile should be readable without a login.");
+  const publicProfile = await publicProfileResponse.json();
+  assert.equal(publicProfile.profile?.handle, updatedProfile.profile.handle);
+  assert.equal(publicProfile.user?.email, undefined, "Public profiles must not expose account email addresses.");
+  assert.ok(publicProfile.projects?.some((item) => item.id === publicProject.id), "Public profiles should show public projects.");
+  assert.ok(!publicProfile.projects?.some((item) => item.id === privateProject.id), "Public profiles must hide private projects.");
+
+  const hideProfileResponse = await request("/api/profile", {
+    method: "PUT",
+    headers: { "content-type": "application/json", cookie: ownerCookie },
+    body: JSON.stringify({ ...updatedProfile.profile, isPublic: false })
+  });
+  assert.equal(hideProfileResponse.status, 200, "Profile privacy can be disabled.");
+  const hiddenProfileResponse = await request(publicProfilePath);
+  assert.equal(hiddenProfileResponse.status, 404, "Private profiles must not be available through public endpoints.");
+
+  const showProfileResponse = await request("/api/profile", {
+    method: "PUT",
+    headers: { "content-type": "application/json", cookie: ownerCookie },
+    body: JSON.stringify({ ...updatedProfile.profile, isPublic: true })
+  });
+  assert.equal(showProfileResponse.status, 200, "Profile privacy can be restored.");
 
   const collaboratorCookie = await register("HamPajuh CI Collaborator");
   const joinResponse = await request(
@@ -166,7 +183,8 @@ async function main() {
   console.log("PASS: anonymous writes are rejected");
   console.log("PASS: signup creates authenticated sessions");
   console.log("PASS: first login provisions a profile and profile edits persist");
-  console.log("PASS: public researcher profiles are readable without exposing account email");
+  console.log("PASS: public profiles expose public projects but hide private projects and account email");
+  console.log("PASS: private profiles return not found to public visitors");
   console.log("PASS: authenticated users can create projects");
   console.log("PASS: private projects are excluded from public discovery");
   console.log("PASS: collaboration requests are recorded and duplicate requests are handled");
