@@ -81,3 +81,40 @@
 .profile-message.error{background:#fff3f0;color:#a64b3f}
 .profile-loading{min-height:55vh;display:grid;place-items:center;color:#71827c;font-size:12px}
 @media(max-width:760px){.profile-layout{grid-template-columns:1fr}.profile-side{position:static}.profile-side .profile-tip{display:none}.profile-form-card{padding:19px}.profile-form-heading h2{font-size:18px}}
+
+
+/* Public researcher portfolio */
+.profile-public-link{display:table;margin:0 auto 14px;color:var(--teal);font-size:9px;font-weight:800}
+.profile-public-link:hover{text-decoration:underline}
+.public-profile-page{min-height:100vh;padding:25px clamp(16px,5vw,60px) 55px;background:var(--paper)}
+.public-profile-top{max-width:1080px;margin:0 auto 25px;display:flex;align-items:center;justify-content:space-between}
+.public-profile-back{font-size:10px;font-weight:800;color:#71827c}
+.public-profile-hero{max-width:1080px;margin:0 auto;background:linear-gradient(115deg,#163c3d,#205d56);color:#fff;border-radius:18px;padding:32px 35px;display:grid;grid-template-columns:88px minmax(0,1fr) auto;align-items:center;gap:21px;position:relative;overflow:hidden}
+.public-profile-hero:after{content:"";width:320px;height:320px;border:1px solid rgba(223,246,232,.13);border-radius:50%;position:absolute;left:-90px;top:-190px;box-shadow:0 0 0 35px rgba(223,246,232,.025),0 0 0 75px rgba(223,246,232,.025)}
+.public-profile-avatar{width:78px;height:78px;border-radius:24px;background:#e4f1e8;color:#1c6d5d;display:grid;place-items:center;font-size:30px;font-weight:900;position:relative;z-index:1}
+.public-profile-identity,.public-profile-stats{position:relative;z-index:1}
+.public-profile-kicker{font-size:9px;font-weight:800;color:#a9d8bd}
+.public-profile-identity h1{font-size:25px;font-weight:900;margin:3px 0 0}
+.public-profile-handle{font-size:10px;color:#b4d2c5;margin-top:3px}
+.public-profile-headline{margin:8px 0 0;color:#e0eee7;font-size:11px}
+.public-profile-location{display:block;margin-top:5px;color:#b2cfc2;font-size:9px}
+.public-profile-stats{display:flex;gap:24px;border-right:1px solid rgba(255,255,255,.16);padding-right:24px}
+.public-profile-stats div{display:flex;flex-direction:column;gap:4px}
+.public-profile-stats strong{font-size:23px;font-weight:900}
+.public-profile-stats span{font-size:9px;color:#bdd8cb;white-space:nowrap}
+.public-profile-content{max-width:1080px;margin:20px auto 0;display:grid;grid-template-columns:310px minmax(0,1fr);gap:18px;align-items:start}
+.public-profile-about,.public-profile-projects{background:#fff;border:1px solid #e7eeea;border-radius:14px;padding:22px}
+.public-profile-content h2{font-size:16px;font-weight:900;margin:4px 0 13px}
+.public-profile-about p{font-size:10px;line-height:2.2;color:#778782;margin:0}
+.public-profile-website{display:inline-block;margin-top:14px;color:var(--teal);font-size:9px;font-weight:800;direction:ltr}
+.public-project-list{display:flex;flex-direction:column;gap:10px}
+.public-project-card{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:14px;border:1px solid #edf1ee;border-radius:10px}
+.public-project-discipline{display:inline-flex;padding:4px 7px;background:#eaf5ef;color:#41856c;border-radius:5px;font-size:8px;font-weight:800}
+.public-project-card h3{font-size:12px;margin:8px 0 5px}
+.public-project-card p{font-size:9px;line-height:1.9;color:#82908b;margin:0}
+.public-project-meta{display:flex;flex-direction:column;align-items:flex-end;gap:6px;white-space:nowrap;color:#89968f;font-size:8px}
+.public-profile-empty-projects{padding:25px;text-align:center;border:1px dashed #dce7e1;border-radius:10px;color:#8a9690;font-size:10px}
+.public-profile-empty{min-height:70vh;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;gap:8px}
+.public-profile-empty h1{font-size:22px;margin:0}
+.public-profile-empty p{font-size:10px;color:#87948e;margin:0 0 12px}
+@media(max-width:760px){.public-profile-hero{grid-template-columns:60px minmax(0,1fr);padding:23px 20px;gap:14px}.public-profile-avatar{width:58px;height:58px;border-radius:18px;font-size:23px}.public-profile-identity h1{font-size:20px}.public-profile-stats{grid-column:1/-1;border-right:0;border-top:1px solid rgba(255,255,255,.16);padding:14px 0 0;margin-top:3px;gap:28px}.public-profile-stats strong{font-size:18px}.public-profile-content{grid-template-columns:1fr}.public-project-card{flex-direction:column}.public-project-meta{flex-direction:row;align-items:center}}

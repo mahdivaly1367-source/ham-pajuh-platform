@@ -110,6 +110,14 @@ async function main() {
   const updatedProfile = await updatedProfileResponse.json();
   assert.equal(updatedProfile.profile?.headline, "پژوهشگر آزمون هم‌پژوه");
 
+  const publicProfileResponse = await request(
+    "/api/profiles/" + encodeURIComponent(updatedProfile.profile.handle)
+  );
+  assert.equal(publicProfileResponse.status, 200, "A public profile should be readable without a login.");
+  const publicProfile = await publicProfileResponse.json();
+  assert.equal(publicProfile.profile?.handle, updatedProfile.profile.handle);
+  assert.equal(publicProfile.user?.email, undefined, "Public profiles must not expose account email addresses.");
+
   const publicProject = await createProject(
     ownerCookie,
     "public",
@@ -158,6 +166,7 @@ async function main() {
   console.log("PASS: anonymous writes are rejected");
   console.log("PASS: signup creates authenticated sessions");
   console.log("PASS: first login provisions a profile and profile edits persist");
+  console.log("PASS: public researcher profiles are readable without exposing account email");
   console.log("PASS: authenticated users can create projects");
   console.log("PASS: private projects are excluded from public discovery");
   console.log("PASS: collaboration requests are recorded and duplicate requests are handled");
