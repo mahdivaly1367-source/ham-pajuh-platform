@@ -147,14 +147,16 @@ export default function HomePage() {
       }
 
       const created = payload.project as Project;
-      setProjects((current) => [created, ...current]);
-      setActiveDiscipline("همه حوزه‌ها");
-      setQuery("");
+      if (visibility === "public") {
+        setProjects((current) => [created, ...current]);
+        setActiveDiscipline("همه حوزه‌ها");
+        setQuery("");
+      }
       setShowCreate(false);
       formElement.reset();
       notify(visibility === "public"
         ? "پروژه ساخته و برای نمایش عمومی منتشر شد."
-        : "پروژه خصوصی ساخته شد؛ فقط اعضای مجاز به آن دسترسی خواهند داشت.");
+        : "پروژه خصوصی ساخته شد و در فهرست عمومی نمایش داده نمی‌شود.");
     } catch {
       notify("ارتباط با سرور برقرار نشد. اتصال شبکه و وضعیت برنامه را بررسی کن.");
     }
