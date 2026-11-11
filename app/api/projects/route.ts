@@ -104,7 +104,7 @@ export async function POST(request: Request) {
 
   try {
     const session = await getAuth().api.getSession({ headers: request.headers });
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "برای ساخت پروژه ابتدا وارد حساب کاربری شوید." }, { status: 401 });
     }
 
@@ -156,6 +156,8 @@ export async function POST(request: Request) {
           status: "idea"
         })
         .returning();
+
+      if (!project) throw new Error("Project insert returned no row.");
 
       await tx.insert(projectMembers).values({
         projectId: project.id,
