@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 
 type Project = {
-  id: number;
+  id: string | number;
   title: string;
   summary: string;
   discipline: string;
@@ -26,7 +27,27 @@ const seedProjects: Project[] = [
   { id: 6, title: "آرشیو روایت‌های شفاهی محلی", summary: "ثبت و نگهداری روایت‌ها و گویش‌های محلی با رعایت رضایت و حقوق مشارکت‌کنندگان.", discipline: "علوم انسانی", color: "rose", owner: "حافظه زنده", initials: "حز", updated: "یک هفته پیش", members: 9, stars: 37, tags: ["زبان‌شناسی", "آرشیو", "فرهنگ"], stage: "پذیرای همکار" }
 ];
 
-const disciplines = ["همه حوزه‌ها", "هوش مصنوعی", "مهندسی", "زیست‌فناوری", "علوم پایه", "محیط زیست", "علوم انسانی"];
+const disciplines = ["همه حوزه‌ها", "هوش مصنوعی", "نرم‌افزار و علوم رایانه", "مهندسی", "مکانیک و ساخت", "الکترونیک و برق", "هوافضا", "رباتیک", "زیست‌شناسی و زیست‌فناوری", "فیزیک و علوم پایه", "محیط زیست و زمین", "ریاضیات و آمار", "علوم انسانی و اجتماعی", "آموزش و یادگیری", "میان‌رشته‌ای"];
+
+const disciplineSlugs: Record<string, string> = {
+  "هوش مصنوعی": "artificial-intelligence",
+  "نرم‌افزار و علوم رایانه": "software",
+  "مهندسی": "engineering",
+  "مکانیک و ساخت": "mechanical",
+  "الکترونیک و برق": "electronics",
+  "هوافضا": "aerospace",
+  "رباتیک": "robotics",
+  "زیست‌شناسی و زیست‌فناوری": "life-sciences",
+  "فیزیک و علوم پایه": "physical-sciences",
+  "علوم پایه": "physical-sciences",
+  "محیط زیست و زمین": "environment",
+  "محیط زیست": "environment",
+  "ریاضیات و آمار": "mathematics",
+  "علوم انسانی و اجتماعی": "humanities",
+  "علوم انسانی": "humanities",
+  "آموزش و یادگیری": "education",
+  "میان‌رشته‌ای": "interdisciplinary"
+};
 
 function Icon({ name, size = 18 }: { name: string; size?: number }) {
   const shapes: Record<string, ReactNode> = {
@@ -60,8 +81,23 @@ export default function HomePage() {
   const [query, setQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [requested, setRequested] = useState<number[]>([]);
+  const [requested, setRequested] = useState<Array<string | number>>([]);
   const [notice, setNotice] = useState("");
+  const [liveData, setLiveData] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/projects", { cache: "no-store" })
+      .then(async (response) => response.ok ? response.json() : null)
+      .then((data: unknown) => {
+        if (active && Array.isArray(data)) {
+          setProjects(data as Project[]);
+          setLiveData(true);
+        }
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
 
   const visibleProjects = useMemo(() => {
     const term = query.trim().toLocaleLowerCase("fa");
@@ -77,25 +113,80 @@ export default function HomePage() {
     window.setTimeout(() => setNotice(""), 5000);
   }
 
-  function createProject(event: FormEvent<HTMLFormElement>) {
+  async function createProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const title = String(form.get("title") || "").trim();
     const summary = String(form.get("summary") || "").trim();
-    const discipline = String(form.get("discipline") || "علوم پایه");
+    const discipline = String(form.get("discipline") || "میان‌رشته‌ای");
+    const visibility = String(form.get("visibility") || "private");
     if (!title || !summary) return;
-    const color = discipline === "هوش مصنوعی" ? "violet" : discipline === "مهندسی" ? "amber" : "mint";
-    setProjects((current) => [{ id: Date.now(), title, summary, discipline, color, owner: "پروژه تازه", initials: "ت", updated: "همین حالا", members: 1, stars: 0, tags: ["پروژه تازه", "مشارکت آزاد"], stage: "تازه ایجادشده" }, ...current]);
-    setActiveDiscipline("همه حوزه‌ها");
-    setQuery("");
-    setShowCreate(false);
-    notify("پروژه به پیش‌نمایش محلی اضافه شد؛ برای انتشار واقعی هنوز به حساب کاربری و پایگاه داده نیاز داریم.");
+
+    try {
+      const response = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          summary,
+          disciplineSlug: disciplineSlugs[discipline] ?? "interdisciplinary",
+          visibility
+        })
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        notify("برای ساخت پروژه باید وارد حساب کاربری شوی. در حال انتقال به صفحه ورود...");
+        window.setTimeout(() => { window.location.href = "/auth"; }, 900);
+        return;
+      }
+      if (!response.ok) {
+        notify(payload.error ?? "ساخت پروژه انجام نشد. تنظیمات پایگاه داده را بررسی کن.");
+        return;
+      }
+
+      const created = payload.project as Project;
+      setProjects((current) => [created, ...current]);
+      setActiveDiscipline("همه حوزه‌ها");
+      setQuery("");
+      setShowCreate(false);
+      formElement.reset();
+      notify(visibility === "public"
+        ? "پروژه ساخته و برای نمایش عمومی منتشر شد."
+        : "پروژه خصوصی ساخته شد؛ فقط اعضای مجاز به آن دسترسی خواهند داشت.");
+    } catch {
+      notify("ارتباط با سرور برقرار نشد. اتصال شبکه و وضعیت برنامه را بررسی کن.");
+    }
   }
 
-  function toggleRequest(id: number) {
-    const exists = requested.includes(id);
-    setRequested((current) => exists ? current.filter((item) => item !== id) : [...current, id]);
-    notify(exists ? "درخواست محلی لغو شد." : "درخواست همکاری در پیش‌نمایش ثبت شد؛ هنوز به سرور ارسال نمی‌شود.");
+  async function toggleRequest(id: string | number) {
+    if (!liveData || typeof id !== "string") {
+      notify("این مورد نمونه نمایشی است. درخواست همکاری واقعی پس از اتصال پایگاه داده فعال می‌شود.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/projects/" + encodeURIComponent(id) + "/join", {
+        method: "POST"
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        notify("برای درخواست همکاری ابتدا وارد حساب کاربری شو.");
+        window.setTimeout(() => { window.location.href = "/auth"; }, 900);
+        return;
+      }
+      if (!response.ok && response.status !== 409) {
+        notify(payload.error ?? "ثبت درخواست همکاری انجام نشد.");
+        return;
+      }
+
+      setRequested((current) => current.includes(id) ? current : [...current, id]);
+      notify(payload.message ?? "درخواست همکاری ثبت شد.");
+    } catch {
+      notify("ارتباط با سرور برقرار نشد.");
+    }
   }
 
   return (
@@ -112,7 +203,7 @@ export default function HomePage() {
         </nav>
         <div className="topbar-actions">
           <button className="language-button" type="button"><Icon name="globe" size={16} /> FA</button>
-          <button className="login-button" type="button" onClick={() => notify("ورود و ثبت‌نام در مرحله بعد به سامانه احراز هویت متصل می‌شود.")}>ورود</button>
+          <Link className="login-button" href="/auth">ورود / ثبت‌نام</Link>
           <button className="header-cta" type="button" onClick={() => setShowCreate(true)}><Icon name="plus" size={17} /> پروژه جدید</button>
           <button className="mobile-menu-button" type="button" onClick={() => setMenuOpen((value) => !value)} aria-label="باز کردن منو"><Icon name={menuOpen ? "close" : "menu"} size={21} /></button>
         </div>
@@ -186,7 +277,7 @@ export default function HomePage() {
               </article>)}
             </div>
             {visibleProjects.length === 0 && <div className="empty-state"><span><Icon name="search" size={24} /></span><strong>پروژه‌ای پیدا نشد</strong><p>عبارت جست‌وجو یا حوزه انتخاب‌شده را تغییر بده.</p><button type="button" onClick={() => { setQuery(""); setActiveDiscipline("همه حوزه‌ها"); }}>پاک‌کردن فیلترها</button></div>}
-            <div className="catalog-footnote">این پروژه‌ها داده‌های نمایشی نسخه اولیه هستند و هنوز از پایگاه داده زنده دریافت نمی‌شوند.</div>
+            <div className="catalog-footnote">{liveData ? "نمایش پروژه‌های عمومی دریافت‌شده از پایگاه داده هم‌پژوه." : "در حال نمایش داده‌های نمونه؛ برای فعال‌شدن فهرست زنده باید پایگاه داده پیکربندی شود."}</div>
           </div>
         </div>
       </section>
@@ -208,9 +299,10 @@ export default function HomePage() {
           <form onSubmit={createProject}>
             <label>عنوان پروژه<input name="title" required maxLength={90} placeholder="مثلاً طراحی یک حسگر کم‌هزینه..." /></label>
             <label>حوزه اصلی<select name="discipline">{disciplines.filter((item) => item !== "همه حوزه‌ها").map((item) => <option key={item}>{item}</option>)}</select></label>
-            <label>توضیح کوتاه<textarea name="summary" required maxLength={320} rows={4} placeholder="مسئله چیست و می‌خواهی به چه نتیجه‌ای برسی؟" /></label>
-            <div className="modal-note"><Icon name="info" size={16} /> این فرم فعلاً پیش‌نمایش محلی است؛ ثبت دائمی پس از اتصال حساب کاربری و پایگاه داده پیاده‌سازی می‌شود.</div>
-            <div className="modal-actions"><button className="secondary-button" type="button" onClick={() => setShowCreate(false)}>انصراف</button><button className="primary-button" type="submit">افزودن به پیش‌نمایش <Icon name="arrow" size={16} /></button></div>
+            <label>توضیح کوتاه<textarea name="summary" required minLength={20} maxLength={280} rows={4} placeholder="مسئله چیست و می‌خواهی به چه نتیجه‌ای برسی؟" /></label>
+            <label>سطح دسترسی<select name="visibility" defaultValue="private"><option value="private">خصوصی — فقط اعضای دعوت‌شده</option><option value="public">عمومی — قابل مشاهده برای همه</option></select></label>
+            <div className="modal-note"><Icon name="info" size={16} /> پروژه‌ها به‌صورت پیش‌فرض خصوصی ساخته می‌شوند. برای نمایش در جست‌وجوی عمومی، گزینه عمومی را انتخاب کن.</div>
+            <div className="modal-actions"><button className="secondary-button" type="button" onClick={() => setShowCreate(false)}>انصراف</button><button className="primary-button" type="submit">ثبت پروژه <Icon name="arrow" size={16} /></button></div>
           </form>
         </section>
       </div>}
