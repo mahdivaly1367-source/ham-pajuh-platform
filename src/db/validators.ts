@@ -14,7 +14,8 @@ export const updateProfileInput = z.object({
   bio: z.string().trim().max(2000).optional().default(""),
   location: z.string().trim().max(120).optional().default(""),
   website: z.union([z.string().trim().url(), z.literal("")]).optional().default(""),
-  isPublic: z.boolean().default(true)
+  isPublic: z.boolean().default(true),
+  skills: z.array(z.string().trim().min(2).max(80)).max(24).optional()
 });
 
 export type CreateProjectInput = z.infer<typeof createProjectInput>;

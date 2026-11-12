@@ -15,6 +15,13 @@
       "when": 1794445200000,
       "tag": "0001_unique_pending_collaboration",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794448800000,
+      "tag": "0002_profile_skills",
+      "breakpoints": true
     }
   ]
 }

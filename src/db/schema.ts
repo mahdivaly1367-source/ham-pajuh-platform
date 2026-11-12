@@ -90,6 +90,19 @@ export const profiles = pgTable("profile", {
   uniqueIndex("profile_orcid_unique").on(table.orcid)
 ]);
 
+export const profileSkills = pgTable("profile_skill", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id").notNull().references(() => profiles.userId, { onDelete: "cascade" }),
+  label: varchar("label", { length: 80 }).notNull(),
+  normalizedLabel: varchar("normalized_label", { length: 80 }).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull()
+}, (table) => [
+  uniqueIndex("profile_skill_user_normalized_unique").on(table.userId, table.normalizedLabel),
+  index("profile_skill_normalized_label_idx").on(table.normalizedLabel),
+  index("profile_skill_user_order_idx").on(table.userId, table.sortOrder)
+]);
+
 export const disciplines = pgTable("discipline", {
   id: uuid("id").defaultRandom().primaryKey(),
   slug: varchar("slug", { length: 80 }).notNull().unique(),
