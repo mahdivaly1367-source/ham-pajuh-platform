@@ -372,6 +372,92 @@ async function main() {
   assert.equal(contributorTaskStatusBody.task?.status, "in_progress");
 
 
+  const anonymousDiscussions = await request("/api/projects/" + publicProject.id + "/discussions");
+  assert.equal(anonymousDiscussions.status, 401, "Anonymous visitors must not read internal project discussions.");
+
+  const ownerDiscussionResponse = await request("/api/projects/" + publicProject.id + "/discussions", {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: ownerCookie },
+    body: JSON.stringify({
+      title: "بازبینی روش ارزیابی آزمایش",
+      body: "لطفاً روش ارزیابی و معیارهای انتخاب‌شده را از نظر تکرارپذیری بررسی کنیم.",
+      kind: "review",
+      taskId
+    })
+  });
+  assert.equal(ownerDiscussionResponse.status, 201, "Project managers should be able to create review topics.");
+  const ownerDiscussionBody = await ownerDiscussionResponse.json();
+  const topicId = ownerDiscussionBody.topic?.id;
+  assert.ok(topicId, "Discussion creation should return a topic identifier.");
+
+  const collaboratorDiscussions = await request("/api/projects/" + publicProject.id + "/discussions", {
+    headers: { cookie: collaboratorCookie }
+  });
+  assert.equal(collaboratorDiscussions.status, 200, "Project members should be able to read internal discussions.");
+  const collaboratorDiscussionsBody = await collaboratorDiscussions.json();
+  assert.ok(
+    collaboratorDiscussionsBody.topics?.some((item) => item.id === topicId && item.taskTitle === "بررسی داده‌های آزمایش"),
+    "Discussion topics should expose their linked task to project members."
+  );
+
+  const collaboratorReply = await request(
+    "/api/projects/" + publicProject.id + "/discussions/" + topicId + "/posts",
+    {
+      method: "POST",
+      headers: { "content-type": "application/json", cookie: collaboratorCookie },
+      body: JSON.stringify({ body: "معیارهای اصلی روشن‌اند؛ بهتر است یک آزمون تکرار مستقل هم اضافه شود." })
+    }
+  );
+  assert.equal(collaboratorReply.status, 201, "Contributors should be able to reply to open discussions.");
+
+  const ownerDiscussionPosts = await request(
+    "/api/projects/" + publicProject.id + "/discussions/" + topicId + "/posts",
+    { headers: { cookie: ownerCookie } }
+  );
+  assert.equal(ownerDiscussionPosts.status, 200, "Project managers should be able to read discussion replies.");
+  const ownerDiscussionPostsBody = await ownerDiscussionPosts.json();
+  assert.equal(ownerDiscussionPostsBody.posts?.length, 1, "Discussion replies should be returned in chronological order.");
+
+  const resolveDiscussion = await request(
+    "/api/projects/" + publicProject.id + "/discussions/" + topicId,
+    {
+      method: "PATCH",
+      headers: { "content-type": "application/json", cookie: ownerCookie },
+      body: JSON.stringify({ action: "resolve" })
+    }
+  );
+  assert.equal(resolveDiscussion.status, 200, "Project managers should be able to resolve a discussion.");
+
+  const replyToResolvedDiscussion = await request(
+    "/api/projects/" + publicProject.id + "/discussions/" + topicId + "/posts",
+    {
+      method: "POST",
+      headers: { "content-type": "application/json", cookie: collaboratorCookie },
+      body: JSON.stringify({ body: "این پاسخ باید تا بازگشایی موضوع رد شود." })
+    }
+  );
+  assert.equal(replyToResolvedDiscussion.status, 409, "Resolved discussions must not accept new replies.");
+
+  const reopenDiscussion = await request(
+    "/api/projects/" + publicProject.id + "/discussions/" + topicId,
+    {
+      method: "PATCH",
+      headers: { "content-type": "application/json", cookie: ownerCookie },
+      body: JSON.stringify({ action: "reopen" })
+    }
+  );
+  assert.equal(reopenDiscussion.status, 200, "Project managers should be able to reopen a discussion.");
+
+  const secondDiscussionReply = await request(
+    "/api/projects/" + publicProject.id + "/discussions/" + topicId + "/posts",
+    {
+      method: "POST",
+      headers: { "content-type": "application/json", cookie: collaboratorCookie },
+      body: JSON.stringify({ body: "با اجرای آزمون مستقل می‌توانیم میزان پایداری نتیجه را مقایسه کنیم." })
+    }
+  );
+  assert.equal(secondDiscussionReply.status, 201, "Members should be able to continue a reopened discussion.");
+
   const unauthorizedRoleChange = await request(
     `/api/projects/${publicProject.id}/members/${collaboratorId}`,
     {
@@ -414,6 +500,34 @@ async function main() {
     }
   );
   assert.equal(setViewer.status, 200, "Project owners should be able to assign the read-only viewer role.");
+
+  const viewerDiscussionRead = await request("/api/projects/" + publicProject.id + "/discussions", {
+    headers: { cookie: collaboratorCookie }
+  });
+  assert.equal(viewerDiscussionRead.status, 200, "Viewers may read project discussions.");
+
+  const viewerDiscussionPosts = await request(
+    "/api/projects/" + publicProject.id + "/discussions/" + topicId + "/posts",
+    { headers: { cookie: collaboratorCookie } }
+  );
+  assert.equal(viewerDiscussionPosts.status, 200, "Viewers may read discussion replies.");
+
+  const viewerCannotCreateDiscussion = await request("/api/projects/" + publicProject.id + "/discussions", {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: collaboratorCookie },
+    body: JSON.stringify({ title: "بحث مشاهده‌گر", body: "این عملیات نباید مجاز باشد.", kind: "general" })
+  });
+  assert.equal(viewerCannotCreateDiscussion.status, 403, "Viewers must not create discussion topics.");
+
+  const viewerCannotReply = await request(
+    "/api/projects/" + publicProject.id + "/discussions/" + topicId + "/posts",
+    {
+      method: "POST",
+      headers: { "content-type": "application/json", cookie: collaboratorCookie },
+      body: JSON.stringify({ body: "این پاسخ نباید ثبت شود." })
+    }
+  );
+  assert.equal(viewerCannotReply.status, 403, "Viewers must not reply to discussions.");
 
   const viewerCannotCreateTask = await request("/api/projects/" + publicProject.id + "/tasks", {
     method: "POST",
@@ -471,12 +585,25 @@ async function main() {
     headers: { cookie: collaboratorCookie }
   });
   assert.equal(tasksAfterLeave.status, 404, "Former members must lose access to the internal task board.");
+  const discussionsAfterLeave = await request("/api/projects/" + publicProject.id + "/discussions", {
+    headers: { cookie: collaboratorCookie }
+  });
+  assert.equal(discussionsAfterLeave.status, 404, "Former members must lose access to internal project discussions.");
+  const discussionPostsAfterLeave = await request(
+    "/api/projects/" + publicProject.id + "/discussions/" + topicId + "/posts",
+    { headers: { cookie: collaboratorCookie } }
+  );
+  assert.equal(discussionPostsAfterLeave.status, 404, "Former members must lose access to discussion replies.");
 
   const finalActivityResponse = await request(`/api/projects/${publicProject.id}/activity`);
   const finalActivity = await finalActivityResponse.json();
   assert.ok(finalActivity.events?.some((event) => event.eventType === "project.member_left"), "Leaving a project should be recorded in its activity history.");
   assert.ok(finalActivity.events?.some((event) => event.eventType === "project.task_created"), "Task creation should be recorded in project activity.");
   assert.ok(finalActivity.events?.some((event) => event.eventType === "project.task_status_changed"), "Task status changes should be recorded in project activity.");
+  assert.ok(finalActivity.events?.some((event) => event.eventType === "project.discussion_created"), "Discussion creation should be recorded in project activity.");
+  assert.ok(finalActivity.events?.some((event) => event.eventType === "project.discussion_reply_created"), "Discussion replies should be recorded in project activity.");
+  assert.ok(finalActivity.events?.some((event) => event.eventType === "project.discussion_resolved"), "Discussion resolution should be recorded in project activity.");
+  assert.ok(finalActivity.events?.some((event) => event.eventType === "project.discussion_reopened"), "Discussion reopening should be recorded in project activity.");
 
 
   console.log("PASS: anonymous writes are rejected");
@@ -495,6 +622,7 @@ async function main() {
   console.log("PASS: collaboration requests are visible only to project managers");
   console.log("PASS: owners can accept requests and add contributors to the team");
   console.log("PASS: members can create and track tasks with role-based permissions");
+  console.log("PASS: member-only research discussions, task-linked reviews, replies and resolve/reopen permissions");
 }
 
 main().catch((error) => {

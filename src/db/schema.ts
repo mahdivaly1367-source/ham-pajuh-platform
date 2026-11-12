@@ -77,6 +77,8 @@ export const collaborationRequestStatus = pgEnum("collaboration_request_status",
 export const artifactType = pgEnum("artifact_type", ["source_code", "document", "dataset", "model", "cad", "schematic", "image", "video", "simulation", "other"]);
 export const projectTaskStatus = pgEnum("project_task_status", ["todo", "in_progress", "blocked", "done"]);
 export const projectTaskPriority = pgEnum("project_task_priority", ["low", "normal", "high", "urgent"]);
+export const projectDiscussionKind = pgEnum("project_discussion_kind", ["general", "question", "decision", "review"]);
+export const projectDiscussionStatus = pgEnum("project_discussion_status", ["open", "resolved"]);
 
 export const profiles = pgTable("profile", {
   userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
@@ -162,6 +164,37 @@ export const projectTasks = pgTable("project_task", {
 }, (table) => [
   index("project_task_project_status_created_idx").on(table.projectId, table.status, table.createdAt),
   index("project_task_assignee_status_idx").on(table.assigneeId, table.status)
+]);
+
+
+export const projectDiscussionTopics = pgTable("project_discussion_topic", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  taskId: uuid("task_id").references(() => projectTasks.id, { onDelete: "set null" }),
+  authorId: text("author_id").notNull().references(() => user.id, { onDelete: "restrict" }),
+  kind: projectDiscussionKind("kind").default("general").notNull(),
+  title: varchar("title", { length: 180 }).notNull(),
+  body: text("body").notNull(),
+  status: projectDiscussionStatus("status").default("open").notNull(),
+  resolvedBy: text("resolved_by").references(() => user.id, { onDelete: "set null" }),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true, mode: "date" }),
+  ...timestamps()
+}, (table) => [
+  index("project_discussion_topic_project_updated_idx").on(table.projectId, table.updatedAt),
+  index("project_discussion_topic_task_idx").on(table.taskId),
+  index("project_discussion_topic_author_idx").on(table.authorId)
+]);
+
+export const projectDiscussionPosts = pgTable("project_discussion_post", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  topicId: uuid("topic_id").notNull().references(() => projectDiscussionTopics.id, { onDelete: "cascade" }),
+  authorId: text("author_id").notNull().references(() => user.id, { onDelete: "restrict" }),
+  body: text("body").notNull(),
+  editedAt: timestamp("edited_at", { withTimezone: true, mode: "date" }),
+  ...timestamps()
+}, (table) => [
+  index("project_discussion_post_topic_created_idx").on(table.topicId, table.createdAt),
+  index("project_discussion_post_author_idx").on(table.authorId)
 ]);
 
 export const collaborationRequests = pgTable("collaboration_request", {

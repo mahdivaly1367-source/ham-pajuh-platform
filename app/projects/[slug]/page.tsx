@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import ProjectTaskBoard from "./task-board";
+import ProjectDiscussionBoard from "./discussion-board";
 
 type ProjectDetail = {
   project: {
@@ -414,6 +415,19 @@ export default function ProjectDetailPage() {
           <span className="section-kicker">فضای همکاری تیم</span>
           <h2>تابلوی وظایف پروژه</h2>
           <p>وظایف، مسئولیت‌ها و وضعیت پیشرفت پس از عضویت در تیم برای اعضا نمایش داده می‌شود.</p>
+        </section>
+      )}
+
+      {access.isMember ? (
+        <ProjectDiscussionBoard
+          projectId={project.id}
+          onDiscussionChanged={() => setRefreshKey((value) => value + 1)}
+        />
+      ) : (
+        <section className="project-discussion-section project-discussion-locked">
+          <span className="section-kicker">همکاری پژوهشی</span>
+          <h2>گفت‌وگوهای پروژه</h2>
+          <p>برای حفظ حریم ایده‌ها و تبادل‌های تیمی، بحث‌ها و بازبینی‌ها فقط پس از عضویت در تیم قابل مشاهده‌اند.</p>
         </section>
       )}
 

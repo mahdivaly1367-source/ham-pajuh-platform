@@ -19,6 +19,10 @@ const eventLabels: Record<string, string> = {
   "project.task_updated": "جزئیات یک وظیفه به‌روزرسانی شد",
   "project.task_status_changed": "وضعیت یک وظیفه تغییر کرد",
   "project.task_deleted": "یک وظیفه از پروژه حذف شد",
+  "project.discussion_created": "موضوع جدیدی برای گفت‌وگوی پژوهشی ثبت شد",
+  "project.discussion_reply_created": "پاسخ تازه‌ای به گفت‌وگوی پروژه افزوده شد",
+  "project.discussion_resolved": "یک گفت‌وگوی پروژه حل‌شده علامت‌گذاری شد",
+  "project.discussion_reopened": "یک گفت‌وگوی پروژه دوباره باز شد",
   "project.member_role_changed": "نقش یکی از اعضای تیم تغییر کرد",
   "project.member_left": "یکی از اعضا از پروژه خارج شد",
   "project.member_removed": "یکی از اعضا از تیم خارج شد"
