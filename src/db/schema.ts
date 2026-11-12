@@ -275,6 +275,30 @@ export const projectDatasets = pgTable("project_dataset", {
   index("project_dataset_project_created_idx").on(table.projectId, table.createdAt)
 ]);
 
+
+export const projectExperiments = pgTable("project_experiment", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  createdBy: text("created_by").notNull().references(() => user.id, { onDelete: "restrict" }),
+  datasetId: uuid("dataset_id").references(() => projectDatasets.id, { onDelete: "set null" }),
+  title: varchar("title", { length: 180 }).notNull(),
+  objective: text("objective").default("").notNull(),
+  hypothesis: text("hypothesis").default("").notNull(),
+  protocol: text("protocol").default("").notNull(),
+  materials: jsonb("materials").$type<string[]>().default(sql`'[]'::jsonb`).notNull(),
+  variables: jsonb("variables").$type<string[]>().default(sql`'[]'::jsonb`).notNull(),
+  controls: text("controls").default("").notNull(),
+  procedure: text("procedure").default("").notNull(),
+  observations: text("observations").default("").notNull(),
+  conclusion: text("conclusion").default("").notNull(),
+  status: varchar("status", { length: 24 }).default("planned").notNull(),
+  ...timestamps()
+}, (table) => [
+  index("project_experiment_project_created_idx").on(table.projectId, table.createdAt),
+  index("project_experiment_dataset_idx").on(table.datasetId),
+  index("project_experiment_status_idx").on(table.projectId, table.status)
+]);
+
 export const notifications = pgTable("notification", {
   id: uuid("id").defaultRandom().primaryKey(),
   recipientId: text("recipient_id").notNull().references(() => user.id, { onDelete: "cascade" }),
