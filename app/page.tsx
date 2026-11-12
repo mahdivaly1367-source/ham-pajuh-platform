@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "re
 
 type Project = {
   id: string | number;
+  slug?: string;
   title: string;
   summary: string;
   discipline: string;
@@ -270,7 +271,7 @@ export default function HomePage() {
             <div className="project-grid">
               {visibleProjects.map((project) => <article className="project-card" key={project.id}>
                 <div className="project-card-top"><span className={"project-discipline " + project.color}>{project.discipline}</span><button className="bookmark-button" type="button" aria-label="ذخیره پروژه" onClick={() => notify("قابلیت ذخیره پروژه پس از راه‌اندازی حساب کاربری فعال می‌شود.")}><Icon name="bookmark" size={17} /></button></div>
-                <h3>{project.title}</h3><p className="project-summary">{project.summary}</p>
+                <h3>{project.slug ? <Link href={"/projects/" + encodeURIComponent(project.slug)}>{project.title}</Link> : project.title}</h3><p className="project-summary">{project.summary}</p>
                 <div className="tag-list">{project.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
                 <div className="project-divider" />
                 <div className="project-owner"><span className="owner-avatar">{project.initials}</span><span className="owner-name">{project.owner}<small>{project.updated}</small></span><span className="project-stage">{project.stage}</span></div>

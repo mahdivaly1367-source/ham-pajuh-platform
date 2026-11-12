@@ -158,7 +158,30 @@ async function main() {
   });
   assert.equal(showProfileResponse.status, 200, "Profile privacy can be restored.");
 
+  assert.ok(publicProject.slug, "Created projects should receive a public-friendly slug.");
+  const publicDetailResponse = await request("/api/projects/by-slug/" + encodeURIComponent(publicProject.slug));
+  assert.equal(publicDetailResponse.status, 200, "Public project details should be readable without login.");
+  const publicDetail = await publicDetailResponse.json();
+  assert.equal(publicDetail.project?.id, publicProject.id);
+
+  const hiddenPrivateDetail = await request("/api/projects/by-slug/" + encodeURIComponent(privateProject.slug));
+  assert.equal(hiddenPrivateDetail.status, 404, "Private project details must be hidden from anonymous visitors.");
+  const ownerPrivateDetail = await request("/api/projects/by-slug/" + encodeURIComponent(privateProject.slug), {
+    headers: { cookie: ownerCookie }
+  });
+  assert.equal(ownerPrivateDetail.status, 200, "Project owners should be able to open their private projects.");
+
+  const ownerRequests = await request(`/api/projects/${publicProject.id}/requests`, {
+    headers: { cookie: ownerCookie }
+  });
+  assert.equal(ownerRequests.status, 200, "Project owners should be able to review collaboration requests.");
+
   const collaboratorCookie = await register("HamPajuh CI Collaborator");
+  const forbiddenRequests = await request(`/api/projects/${publicProject.id}/requests`, {
+    headers: { cookie: collaboratorCookie }
+  });
+  assert.equal(forbiddenRequests.status, 403, "Non-managers must not read collaboration requests.");
+
   const joinResponse = await request(
     `/api/projects/${publicProject.id}/join`,
     { method: "POST", headers: { cookie: collaboratorCookie } }
@@ -169,6 +192,7 @@ async function main() {
     201,
     `A collaborator request should be created; got ${joinResponse.status}: ${JSON.stringify(joinBody)}`
   );
+  assert.ok(joinBody.requestId, "The collaboration request should have an identifier.");
 
   const duplicateResponse = await request(
     `/api/projects/${publicProject.id}/join`,
@@ -180,14 +204,42 @@ async function main() {
     "A duplicate pending request should be handled without creating a second request."
   );
 
+  const pendingResponse = await request(`/api/projects/${publicProject.id}/requests`, {
+    headers: { cookie: ownerCookie }
+  });
+  const pendingBody = await pendingResponse.json();
+  assert.equal(pendingBody.requests?.length, 1, "The owner should see exactly one pending request.");
+
+  const reviewResponse = await request(
+    `/api/projects/${publicProject.id}/requests/${joinBody.requestId}`,
+    {
+      method: "PATCH",
+      headers: { "content-type": "application/json", cookie: ownerCookie },
+      body: JSON.stringify({ action: "accept" })
+    }
+  );
+  assert.equal(reviewResponse.status, 200, "The owner should be able to accept a collaboration request.");
+
+  const joinedDetailResponse = await request("/api/projects/by-slug/" + encodeURIComponent(publicProject.slug));
+  const joinedDetail = await joinedDetailResponse.json();
+  assert.ok(joinedDetail.members?.some((member) => member.role === "contributor"), "Accepted collaborators should become project members.");
+
+  const secondJoinResponse = await request(
+    `/api/projects/${publicProject.id}/join`,
+    { method: "POST", headers: { cookie: collaboratorCookie } }
+  );
+  assert.equal(secondJoinResponse.status, 409, "Existing members must not submit another join request.");
+
   console.log("PASS: anonymous writes are rejected");
   console.log("PASS: signup creates authenticated sessions");
   console.log("PASS: first login provisions a profile and profile edits persist");
   console.log("PASS: public profiles expose public projects but hide private projects and account email");
   console.log("PASS: private profiles return not found to public visitors");
   console.log("PASS: authenticated users can create projects");
-  console.log("PASS: private projects are excluded from public discovery");
-  console.log("PASS: collaboration requests are recorded and duplicate requests are handled");
+  console.log("PASS: private projects are excluded from public discovery and hidden project detail");
+  console.log("PASS: project owners can view private projects");
+  console.log("PASS: collaboration requests are visible only to project managers");
+  console.log("PASS: owners can accept requests and add contributors to the team");
 }
 
 main().catch((error) => {

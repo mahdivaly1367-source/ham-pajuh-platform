@@ -118,3 +118,40 @@
 .public-profile-empty h1{font-size:22px;margin:0}
 .public-profile-empty p{font-size:10px;color:#87948e;margin:0 0 12px}
 @media(max-width:760px){.public-profile-hero{grid-template-columns:60px minmax(0,1fr);padding:23px 20px;gap:14px}.public-profile-avatar{width:58px;height:58px;border-radius:18px;font-size:23px}.public-profile-identity h1{font-size:20px}.public-profile-stats{grid-column:1/-1;border-right:0;border-top:1px solid rgba(255,255,255,.16);padding:14px 0 0;margin-top:3px;gap:28px}.public-profile-stats strong{font-size:18px}.public-profile-content{grid-template-columns:1fr}.public-project-card{flex-direction:column}.public-project-meta{flex-direction:row;align-items:center}}
+
+/* Project detail page */
+.project-detail-page{min-height:100vh;padding:25px clamp(16px,5vw,60px) 55px;background:var(--paper)}
+.project-detail-top{max-width:1120px;margin:0 auto 22px;display:flex;align-items:center;justify-content:space-between}
+.project-detail-back{color:#71827c;font-size:10px;font-weight:800}
+.project-detail-hero{max-width:1120px;margin:0 auto;background:#fff;border:1px solid #e5ede8;border-radius:17px;padding:27px 30px;box-shadow:0 10px 35px rgba(27,53,55,.035)}
+.project-detail-topline{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.project-detail-status{padding:5px 9px;border-radius:6px;background:#edf5ef;color:#4b8469;font-size:8px;font-weight:800}
+.project-detail-visibility{font-size:8px;color:#89958f}
+.project-detail-hero h1{font-size:26px;font-weight:900;margin:13px 0 6px;line-height:1.7}
+.project-detail-summary{font-size:12px;color:#657872;line-height:2.1;margin:0}
+.project-detail-meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:16px;color:#84928b;font-size:9px}
+.project-detail-actions{display:flex;gap:9px;margin-top:21px;flex-wrap:wrap}
+.project-detail-content{max-width:1120px;margin:18px auto 0;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+.project-detail-main,.project-detail-sidebar{background:#fff;border:1px solid #e7eeea;border-radius:14px;padding:21px}
+.project-detail-main h2,.project-detail-sidebar h2{font-size:15px;font-weight:900;margin:4px 0 13px}
+.project-description{white-space:pre-wrap;color:#71817b;line-height:2.2;font-size:10px;min-height:80px}
+.project-member-list{display:flex;flex-direction:column;gap:8px}
+.project-member-row{display:flex;align-items:center;gap:10px;padding:10px;background:#f7f9f7;border-radius:9px}
+.project-member-avatar{width:32px;height:32px;border-radius:10px;background:#e6f1eb;color:#427a65;display:grid;place-items:center;font-size:10px;font-weight:900}
+.project-member-name{flex:1;font-size:10px;font-weight:800}
+.project-member-name small{display:block;color:#95a09a;font-size:8px;font-weight:400;margin-top:3px}
+.project-member-role{font-size:8px;color:#6b8978;background:#e9f3ec;padding:4px 7px;border-radius:5px}
+.project-request-panel{margin-top:16px;padding-top:16px;border-top:1px solid #edf1ee}
+.project-request-item{padding:12px 0;border-bottom:1px solid #eef2ef}
+.project-request-item:last-child{border-bottom:0}
+.project-request-item strong{font-size:10px}
+.project-request-item p{font-size:8px;color:#899590;margin:5px 0 9px}
+.project-request-actions{display:flex;gap:7px}
+.project-request-actions button{border:0;border-radius:6px;padding:7px 10px;font-size:8px;font-weight:800}
+.project-request-accept{background:#e8f4ed;color:#327a5d}
+.project-request-decline{background:#fbefed;color:#a15a50}
+.project-empty-note{padding:14px;background:#f6f8f6;border-radius:8px;color:#899590;font-size:9px;line-height:1.9}
+.project-detail-error{max-width:600px;margin:15vh auto;padding:25px;text-align:center;background:#fff;border:1px solid #e7eeea;border-radius:14px}
+.project-detail-error h1{font-size:20px}
+.project-detail-error p{color:#82908a;font-size:10px}
+@media(max-width:760px){.project-detail-hero{padding:21px 18px}.project-detail-hero h1{font-size:21px}.project-detail-content{grid-template-columns:1fr}.project-detail-main,.project-detail-sidebar{padding:17px}}

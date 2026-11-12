@@ -106,7 +106,7 @@ export default function PublicProfilePage() {
             <div className="public-project-list">
               {data.projects.map((project) => (
                 <article className="public-project-card" key={project.id}>
-                  <div><span className="public-project-discipline">{project.discipline}</span><h3>{project.title}</h3><p>{project.summary}</p></div>
+                  <div><span className="public-project-discipline">{project.discipline}</span><h3><Link href={"/projects/" + encodeURIComponent(project.slug)}>{project.title}</Link></h3><p>{project.summary}</p></div>
                   <div className="public-project-meta"><span>{project.role === "owner" ? "بنیان‌گذار پروژه" : "عضو پروژه"}</span><span>{new Date(project.updatedAt).toLocaleDateString("fa-IR")}</span></div>
                 </article>
               ))}
