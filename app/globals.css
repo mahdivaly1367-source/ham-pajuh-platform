@@ -191,3 +191,17 @@
 .dashboard-empty h2,.dashboard-error h1{font-size:17px;margin:12px 0 5px}
 .dashboard-empty p,.dashboard-error p{font-size:10px;color:#84918c;line-height:2;margin:0 0 14px}
 @media(max-width:650px){.dashboard-top{margin-bottom:25px}.dashboard-heading{align-items:flex-start;flex-direction:column}.dashboard-stats{grid-template-columns:repeat(2,1fr);gap:14px 0}.dashboard-stats div:nth-child(2){border-left:0}.dashboard-project-grid{grid-template-columns:1fr}.dashboard-top-actions{gap:11px}.dashboard-top-actions a{font-size:9px}}
+
+
+/* Project owner settings */
+.project-edit-panel{max-width:1120px;margin:14px auto 0;background:#fff;border:1px solid #dfeae4;border-radius:14px;padding:22px;box-shadow:0 10px 30px rgba(27,53,55,.035)}
+.project-edit-panel h2{font-size:16px;margin:2px 0 16px;font-weight:900}
+.project-edit-form{display:flex;flex-direction:column;gap:13px}
+.project-edit-form label{display:flex;flex-direction:column;gap:7px;font-size:10px;color:#536568;font-weight:800}
+.project-edit-form input,.project-edit-form textarea,.project-edit-form select{width:100%;border:1px solid #e3ebe6;border-radius:8px;outline:0;padding:10px 12px;color:var(--ink);background:#fcfdfc;font-size:10px}
+.project-edit-form textarea{resize:vertical;line-height:2}
+.project-edit-form input:focus,.project-edit-form textarea:focus,.project-edit-form select:focus{border-color:#9ccfc0;box-shadow:0 0 0 3px rgba(19,124,112,.07)}
+.project-edit-selects{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.project-edit-warning{padding:10px 12px;background:#f5f8f5;border-radius:8px;color:#7e8d86;font-size:9px;line-height:1.9}
+.project-edit-actions{display:flex;justify-content:flex-end;gap:9px}
+@media(max-width:580px){.project-edit-panel{padding:17px}.project-edit-selects{grid-template-columns:1fr}}

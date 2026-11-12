@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 type ProjectDetail = {
   project: {
@@ -25,7 +25,7 @@ type ProjectDetail = {
     role: string;
     joinedAt: string;
   }>;
-  access: { isMember: boolean; role: string | null; canManage: boolean };
+  access: { isMember: boolean; role: string | null; canManage: boolean; canEdit: boolean };
 };
 
 type CollaborationRequest = {
@@ -64,6 +64,9 @@ export default function ProjectDetailPage() {
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [editOpen, setEditOpen] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editForm, setEditForm] = useState({ title: "", summary: "", description: "", visibility: "private", status: "idea" });
 
   const loadProject = useCallback(async () => {
     const response = await fetch("/api/projects/by-slug/" + encodeURIComponent(slug), { cache: "no-store" });
@@ -77,7 +80,18 @@ export default function ProjectDetailPage() {
     setLoading(true);
     setError("");
     loadProject()
-      .then((payload) => { if (active) setData(payload); })
+      .then((payload) => {
+        if (active) {
+          setData(payload);
+          setEditForm({
+            title: payload.project.title,
+            summary: payload.project.summary,
+            description: payload.project.description ?? "",
+            visibility: payload.project.visibility,
+            status: payload.project.status
+          });
+        }
+      })
       .catch((reason: unknown) => {
         if (active) setError(reason instanceof Error ? reason.message : "خطا در دریافت پروژه.");
       })
@@ -158,6 +172,32 @@ export default function ProjectDetailPage() {
     }
   }
 
+  async function saveProject(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!data) return;
+    setSavingEdit(true);
+    setNotice("");
+    try {
+      const response = await fetch("/api/projects/" + encodeURIComponent(data.project.id), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm)
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setNotice(payload.error ?? "ذخیره تغییرات پروژه انجام نشد.");
+        return;
+      }
+      setNotice("مشخصات پروژه به‌روزرسانی شد.");
+      setEditOpen(false);
+      setRefreshKey((value) => value + 1);
+    } catch {
+      setNotice("ارتباط با سرور برقرار نشد.");
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
   if (loading) {
     return <main className="project-detail-page"><div className="profile-loading">در حال بارگذاری فضای پروژه...</div></main>;
   }
@@ -204,6 +244,7 @@ export default function ProjectDetailPage() {
           <span>{members.length.toLocaleString("fa-IR")} عضو</span>
           <span>آخرین به‌روزرسانی: {new Date(project.updatedAt).toLocaleDateString("fa-IR")}</span>
         </div>
+        {access.canEdit && <div className="project-detail-actions"><button className="secondary-button" type="button" onClick={() => setEditOpen((open) => !open)}>{editOpen ? "بستن ویرایش" : "ویرایش مشخصات پروژه"}</button></div>}
         {project.visibility !== "private" && !access.isMember && (
           <div className="project-detail-actions">
             <button className="primary-button" type="button" disabled={requestLoading} onClick={requestToJoin}>
@@ -214,6 +255,24 @@ export default function ProjectDetailPage() {
       </section>
 
       {notice && <div className="profile-message" role="status" style={{ maxWidth: 1120, margin: "14px auto 0" }}>{notice}</div>}
+
+      {editOpen && access.canEdit && (
+        <section className="project-edit-panel">
+          <div className="section-kicker">تنظیمات پروژه</div>
+          <h2>ویرایش مشخصات و دسترسی</h2>
+          <form className="project-edit-form" onSubmit={saveProject}>
+            <label>عنوان پروژه<input value={editForm.title} onChange={(event) => setEditForm((current) => ({ ...current, title: event.target.value }))} minLength={5} maxLength={100} required /></label>
+            <label>خلاصه پروژه<textarea value={editForm.summary} onChange={(event) => setEditForm((current) => ({ ...current, summary: event.target.value }))} minLength={20} maxLength={280} rows={2} required /></label>
+            <label>توضیحات کامل<textarea value={editForm.description} onChange={(event) => setEditForm((current) => ({ ...current, description: event.target.value }))} maxLength={12000} rows={5} /></label>
+            <div className="project-edit-selects">
+              <label>وضعیت<select value={editForm.status} onChange={(event) => setEditForm((current) => ({ ...current, status: event.target.value }))}><option value="idea">ایده اولیه</option><option value="active">در حال توسعه</option><option value="paused">متوقف موقت</option><option value="completed">تکمیل‌شده</option><option value="archived">بایگانی‌شده</option></select></label>
+              <label>سطح دسترسی<select value={editForm.visibility} onChange={(event) => setEditForm((current) => ({ ...current, visibility: event.target.value }))}><option value="private">خصوصی</option><option value="public">عمومی</option><option value="unlisted">دارای پیوند</option></select></label>
+            </div>
+            <div className="project-edit-warning">پروژه خصوصی فقط برای اعضای آن قابل مشاهده است. پروژه دارای پیوند در فهرست عمومی دیده نمی‌شود اما با نشانی مستقیم قابل دسترسی است.</div>
+            <div className="project-edit-actions"><button type="button" className="secondary-button" onClick={() => setEditOpen(false)}>انصراف</button><button type="submit" className="primary-button" disabled={savingEdit}>{savingEdit ? "در حال ذخیره..." : "ذخیره تغییرات"}</button></div>
+          </form>
+        </section>
+      )}
 
       <div className="project-detail-content">
         <section className="project-detail-main">

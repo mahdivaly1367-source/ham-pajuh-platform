@@ -102,7 +102,8 @@ export async function GET(
       access: {
         isMember: Boolean(currentRole),
         role: currentRole,
-        canManage: currentRole === "owner" || currentRole === "maintainer"
+        canManage: currentRole === "owner" || currentRole === "maintainer",
+        canEdit: currentRole === "owner"
       }
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {

@@ -124,6 +124,19 @@ async function main() {
     "Private CI Project " + randomUUID().slice(0, 8)
   );
 
+  const ownerProjectEdit = await request(`/api/projects/${publicProject.id}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: ownerCookie },
+    body: JSON.stringify({
+      title: "Updated Public CI Project " + randomUUID().slice(0, 8),
+      status: "active",
+      summary: "پروژه آزمایشی به‌روزرسانی شده برای بررسی مجوزهای ویرایش و نمایش اطلاعات."
+    })
+  });
+  assert.equal(ownerProjectEdit.status, 200, "Project owners should be able to update project metadata.");
+  const ownerProjectEditBody = await ownerProjectEdit.json();
+  assert.equal(ownerProjectEditBody.project?.status, "active");
+
   const ownerDashboardResponse = await request("/api/my/projects", {
     headers: { cookie: ownerCookie }
   });
@@ -196,6 +209,13 @@ async function main() {
   assert.equal(ownerRequests.status, 200, "Project owners should be able to review collaboration requests.");
 
   const collaboratorCookie = await register("HamPajuh CI Collaborator");
+  const unauthorizedProjectEdit = await request(`/api/projects/${publicProject.id}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: collaboratorCookie },
+    body: JSON.stringify({ summary: "این تغییر نباید توسط عضو عادی پذیرفته شود." })
+  });
+  assert.equal(unauthorizedProjectEdit.status, 403, "Non-owners must not edit project metadata.");
+
   const forbiddenRequests = await request(`/api/projects/${publicProject.id}/requests`, {
     headers: { cookie: collaboratorCookie }
   });
@@ -270,6 +290,7 @@ async function main() {
   console.log("PASS: authenticated users can create projects");
   console.log("PASS: private projects are excluded from public discovery and hidden project detail");
   console.log("PASS: project owners can view private projects");
+  console.log("PASS: only project owners can edit project metadata");
   console.log("PASS: personal project dashboard shows only projects the user belongs to");
   console.log("PASS: collaboration requests are visible only to project managers");
   console.log("PASS: owners can accept requests and add contributors to the team");

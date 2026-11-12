@@ -19,3 +19,16 @@ export const updateProfileInput = z.object({
 
 export type CreateProjectInput = z.infer<typeof createProjectInput>;
 export type UpdateProfileInput = z.infer<typeof updateProfileInput>;
+
+export const updateProjectInput = z.object({
+  title: z.string().trim().min(5).max(100).optional(),
+  summary: z.string().trim().min(20).max(280).optional(),
+  description: z.string().trim().max(12000).optional(),
+  visibility: z.enum(["public", "private", "unlisted"]).optional(),
+  status: z.enum(["idea", "active", "paused", "completed", "archived"]).optional(),
+  disciplineSlug: z.string().trim().min(2).max(80).regex(/^[a-z0-9-]+$/).optional()
+}).refine((value) => Object.keys(value).length > 0, {
+  message: "دست‌کم یک فیلد برای تغییر انتخاب کنید."
+});
+
+export type UpdateProjectInput = z.infer<typeof updateProjectInput>;
