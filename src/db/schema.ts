@@ -75,6 +75,8 @@ export const projectStatus = pgEnum("project_status", ["idea", "active", "paused
 export const projectMemberRole = pgEnum("project_member_role", ["owner", "maintainer", "contributor", "viewer"]);
 export const collaborationRequestStatus = pgEnum("collaboration_request_status", ["pending", "accepted", "declined", "withdrawn"]);
 export const artifactType = pgEnum("artifact_type", ["source_code", "document", "dataset", "model", "cad", "schematic", "image", "video", "simulation", "other"]);
+export const projectTaskStatus = pgEnum("project_task_status", ["todo", "in_progress", "blocked", "done"]);
+export const projectTaskPriority = pgEnum("project_task_priority", ["low", "normal", "high", "urgent"]);
 
 export const profiles = pgTable("profile", {
   userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
@@ -143,6 +145,23 @@ export const projectMembers = pgTable("project_member", {
 }, (table) => [
   uniqueIndex("project_member_project_user_unique").on(table.projectId, table.userId),
   index("project_member_user_id_idx").on(table.userId)
+]);
+
+export const projectTasks = pgTable("project_task", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  createdBy: text("created_by").notNull().references(() => user.id, { onDelete: "restrict" }),
+  assigneeId: text("assignee_id").references(() => user.id, { onDelete: "set null" }),
+  title: varchar("title", { length: 180 }).notNull(),
+  description: text("description").default("").notNull(),
+  status: projectTaskStatus("status").default("todo").notNull(),
+  priority: projectTaskPriority("priority").default("normal").notNull(),
+  dueAt: timestamp("due_at", { withTimezone: true, mode: "date" }),
+  completedAt: timestamp("completed_at", { withTimezone: true, mode: "date" }),
+  ...timestamps()
+}, (table) => [
+  index("project_task_project_status_created_idx").on(table.projectId, table.status, table.createdAt),
+  index("project_task_assignee_status_idx").on(table.assigneeId, table.status)
 ]);
 
 export const collaborationRequests = pgTable("collaboration_request", {

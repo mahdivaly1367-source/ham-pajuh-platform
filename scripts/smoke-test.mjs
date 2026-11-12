@@ -327,6 +327,50 @@ async function main() {
   assert.equal(collaboratorProfileResponse.status, 200);
   const collaboratorProfile = await collaboratorProfileResponse.json();
   const collaboratorId = collaboratorProfile.user.id;
+ 
+  const anonymousTasks = await request("/api/projects/" + publicProject.id + "/tasks");
+  assert.equal(anonymousTasks.status, 401, "Anonymous visitors must not read the internal task board.");
+
+  const createdTaskResponse = await request("/api/projects/" + publicProject.id + "/tasks", {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: collaboratorCookie },
+    body: JSON.stringify({
+      title: "بررسی داده‌های آزمایش",
+      description: "یک وظیفه برای آزمون گردش کار تیم.",
+      priority: "high",
+      assigneeId: collaboratorId,
+      dueDate: "2027-06-15"
+    })
+  });
+  assert.equal(createdTaskResponse.status, 201, "Project contributors should be able to create tasks.");
+  const createdTaskBody = await createdTaskResponse.json();
+  assert.ok(createdTaskBody.task?.id, "Task creation should return a task identifier.");
+  const taskId = createdTaskBody.task.id;
+
+  const taskListResponse = await request("/api/projects/" + publicProject.id + "/tasks", {
+    headers: { cookie: ownerCookie }
+  });
+  assert.equal(taskListResponse.status, 200, "Project managers should be able to read the task board.");
+  const taskList = await taskListResponse.json();
+  assert.ok(taskList.tasks?.some((task) => task.id === taskId && task.assigneeId === collaboratorId));
+  assert.ok(taskList.members?.some((member) => member.userId === collaboratorId));
+
+  const forbiddenTaskEdit = await request("/api/projects/" + publicProject.id + "/tasks/" + taskId, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: collaboratorCookie },
+    body: JSON.stringify({ title: "تغییر غیرمجاز عنوان وظیفه" })
+  });
+  assert.equal(forbiddenTaskEdit.status, 403, "Contributors may not edit task details after creation.");
+
+  const contributorTaskStatus = await request("/api/projects/" + publicProject.id + "/tasks/" + taskId, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: collaboratorCookie },
+    body: JSON.stringify({ status: "in_progress" })
+  });
+  assert.equal(contributorTaskStatus.status, 200, "An assigned contributor should be able to update task status.");
+  const contributorTaskStatusBody = await contributorTaskStatus.json();
+  assert.equal(contributorTaskStatusBody.task?.status, "in_progress");
+
 
   const unauthorizedRoleChange = await request(
     `/api/projects/${publicProject.id}/members/${collaboratorId}`,
@@ -361,6 +405,41 @@ async function main() {
   );
   assert.equal(restoreContributor.status, 200, "Project owners should be able to change a member role back.");
 
+  const setViewer = await request(
+    "/api/projects/" + publicProject.id + "/members/" + collaboratorId,
+    {
+      method: "PATCH",
+      headers: { "content-type": "application/json", cookie: ownerCookie },
+      body: JSON.stringify({ role: "viewer" })
+    }
+  );
+  assert.equal(setViewer.status, 200, "Project owners should be able to assign the read-only viewer role.");
+
+  const viewerCannotCreateTask = await request("/api/projects/" + publicProject.id + "/tasks", {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: collaboratorCookie },
+    body: JSON.stringify({ title: "وظیفه با دسترسی فقط‌خواندنی" })
+  });
+  assert.equal(viewerCannotCreateTask.status, 403, "Viewers must not create project tasks.");
+
+  const viewerCannotChangeTaskStatus = await request("/api/projects/" + publicProject.id + "/tasks/" + taskId, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: collaboratorCookie },
+    body: JSON.stringify({ status: "blocked" })
+  });
+  assert.equal(viewerCannotChangeTaskStatus.status, 403, "Viewers must not change task status.");
+
+  const restoreContributorAfterViewer = await request(
+    "/api/projects/" + publicProject.id + "/members/" + collaboratorId,
+    {
+      method: "PATCH",
+      headers: { "content-type": "application/json", cookie: ownerCookie },
+      body: JSON.stringify({ role: "contributor" })
+    }
+  );
+  assert.equal(restoreContributorAfterViewer.status, 200, "Owners should be able to restore contributor permissions.");
+
+
   const secondJoinResponse = await request(
     `/api/projects/${publicProject.id}/join`,
     { method: "POST", headers: { cookie: collaboratorCookie } }
@@ -388,9 +467,16 @@ async function main() {
   });
   const afterLeaveDashboard = await afterLeaveDashboardResponse.json();
   assert.ok(!afterLeaveDashboard.projects?.some((item) => item.id === publicProject.id), "A project should disappear from a user's dashboard after leaving.");
+  const tasksAfterLeave = await request("/api/projects/" + publicProject.id + "/tasks", {
+    headers: { cookie: collaboratorCookie }
+  });
+  assert.equal(tasksAfterLeave.status, 404, "Former members must lose access to the internal task board.");
+
   const finalActivityResponse = await request(`/api/projects/${publicProject.id}/activity`);
   const finalActivity = await finalActivityResponse.json();
   assert.ok(finalActivity.events?.some((event) => event.eventType === "project.member_left"), "Leaving a project should be recorded in its activity history.");
+  assert.ok(finalActivity.events?.some((event) => event.eventType === "project.task_created"), "Task creation should be recorded in project activity.");
+  assert.ok(finalActivity.events?.some((event) => event.eventType === "project.task_status_changed"), "Task status changes should be recorded in project activity.");
 
 
   console.log("PASS: anonymous writes are rejected");
@@ -408,6 +494,7 @@ async function main() {
   console.log("PASS: project activity is private-aware and records creation and member departure");
   console.log("PASS: collaboration requests are visible only to project managers");
   console.log("PASS: owners can accept requests and add contributors to the team");
+  console.log("PASS: members can create and track tasks with role-based permissions");
 }
 
 main().catch((error) => {

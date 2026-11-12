@@ -256,3 +256,50 @@
 .dashboard-request-card>button:disabled{opacity:.5;cursor:wait}
 .dashboard-request-empty{padding:17px;background:#fff;border:1px dashed #dce7e1;border-radius:10px;color:#8a9690;font-size:9px}
 @media(max-width:600px){.dashboard-request-card{align-items:flex-start;flex-direction:column}.dashboard-request-card>button{align-self:flex-start}}
+
+
+/* Project task board */
+.project-task-section{max-width:1120px;margin:22px auto 28px;padding:23px;background:#fff;border:1px solid #e7eeea;border-radius:17px;box-shadow:0 10px 30px rgba(27,53,55,.045)}
+.project-task-header{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:19px}
+.project-task-header h2,.project-task-locked h2{margin:3px 0 5px;font-size:21px;font-weight:900;letter-spacing:-.5px}
+.project-task-header p,.project-task-locked p{margin:0;color:#81908b;font-size:11px;line-height:1.9}
+.project-task-create-button{white-space:nowrap;min-height:40px;padding:0 14px;font-size:10px}
+.project-task-notice{margin:0 0 15px;padding:10px 12px;background:#eef7f2;border:1px solid #dceee4;border-radius:9px;color:#347661;font-size:10px;line-height:1.8}
+.project-task-form{display:grid;grid-template-columns:1.3fr 1fr .8fr .9fr;gap:13px;padding:17px;margin-bottom:19px;background:#f7faf8;border:1px solid #e9f0eb;border-radius:12px}
+.project-task-form label{display:flex;flex-direction:column;gap:7px;color:#53676a;font-size:10px;font-weight:700}
+.project-task-form input,.project-task-form select,.project-task-form textarea{width:100%;min-width:0;border:1px solid #dfe8e3;border-radius:8px;background:#fff;padding:9px 10px;color:#30494b;outline:none;font-size:10px}
+.project-task-form input:focus,.project-task-form select:focus,.project-task-form textarea:focus{border-color:#9acabd;box-shadow:0 0 0 3px rgba(19,124,112,.07)}
+.project-task-description-field{grid-column:1/-1}
+.project-task-form textarea{resize:vertical;line-height:1.9}
+.project-task-form-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:9px}
+.project-task-form-actions .primary-button,.project-task-form-actions .secondary-button{min-height:36px;font-size:10px}
+.project-task-board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;align-items:start}
+.project-task-column{min-width:0;padding:10px;background:#f7f9f7;border:1px solid #edf1ee;border-radius:12px}
+.project-task-column>header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 3px 11px;border-bottom:1px solid #e7ede8}
+.project-task-column>header strong,.project-task-column>header small{display:block}
+.project-task-column>header strong{font-size:10px;color:#40575a}
+.project-task-column>header small{font-size:8px;color:#9aa7a1;margin-top:3px}
+.project-task-column>header>span{display:grid;place-items:center;min-width:23px;height:23px;padding:0 5px;border-radius:7px;background:#eaf1ec;color:#537267;font-size:9px;font-weight:800}
+.project-task-column.status-in_progress>header>span{background:#eaf1f7;color:#5d7f9d}
+.project-task-column.status-blocked>header>span{background:#fbf1e6;color:#a87a43}
+.project-task-column.status-done>header>span{background:#e9f4ed;color:#4f8a68}
+.project-task-list{display:flex;flex-direction:column;gap:8px;padding-top:9px}
+.project-task-card{min-width:0;padding:11px;background:#fff;border:1px solid #e8eeea;border-radius:9px;box-shadow:0 3px 10px rgba(34,60,52,.025)}
+.project-task-card-top{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.project-task-card-top time{font-size:8px;color:#899994;white-space:nowrap}
+.project-task-priority{display:inline-flex;padding:3px 7px;border-radius:5px;font-size:8px;font-weight:800}
+.project-task-priority.priority-low{background:#f0f4f1;color:#75877d}
+.project-task-priority.priority-normal{background:#edf3f5;color:#65808b}
+.project-task-priority.priority-high{background:#fbf1e4;color:#a9773e}
+.project-task-priority.priority-urgent{background:#faebeb;color:#b05f65}
+.project-task-card h3{margin:9px 0 5px;font-size:11px;line-height:1.8;color:#344e50;font-weight:800;overflow-wrap:anywhere}
+.project-task-card>p{margin:0;color:#84918d;font-size:9px;line-height:1.9;white-space:pre-wrap;overflow-wrap:anywhere}
+.project-task-card-footer{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:11px;padding-top:9px;border-top:1px solid #f0f3f0;color:#84928c;font-size:8px}
+.project-task-card-footer>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.project-task-card-footer select{max-width:118px;min-width:0;border:1px solid #e5ece7;border-radius:6px;background:#f9fbf9;padding:5px;color:#52736a;font-size:8px}
+.project-task-card-footer small{color:#789087;font-size:8px;white-space:nowrap}
+.project-task-empty{padding:18px 8px;text-align:center;color:#a2ada7;font-size:8px;border:1px dashed #e2eae4;border-radius:8px}
+.project-task-footnote{margin-top:14px;color:#9aa59f;font-size:8px;line-height:1.8}
+.project-task-locked{padding:20px 23px}
+@media(max-width:1050px){.project-task-board{grid-template-columns:repeat(2,minmax(0,1fr))}.project-task-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.project-task-section{margin:16px 12px 22px;padding:16px;border-radius:13px}.project-task-header{align-items:flex-start;flex-direction:column;gap:12px}.project-task-header h2{font-size:18px}.project-task-form{grid-template-columns:1fr;padding:13px}.project-task-description-field,.project-task-form-actions{grid-column:auto}.project-task-board{grid-template-columns:1fr}.project-task-column{padding:11px}.project-task-card-footer select{max-width:145px}}

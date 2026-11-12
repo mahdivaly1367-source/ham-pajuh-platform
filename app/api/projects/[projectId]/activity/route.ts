@@ -15,6 +15,10 @@ const eventLabels: Record<string, string> = {
   "collaboration.accepted": "درخواست همکاری پذیرفته شد",
   "collaboration.declined": "درخواست همکاری رد شد",
   "collaboration.withdrawn": "متقاضی درخواست همکاری خود را لغو کرد",
+  "project.task_created": "وظیفه جدیدی به پروژه اضافه شد",
+  "project.task_updated": "جزئیات یک وظیفه به‌روزرسانی شد",
+  "project.task_status_changed": "وضعیت یک وظیفه تغییر کرد",
+  "project.task_deleted": "یک وظیفه از پروژه حذف شد",
   "project.member_role_changed": "نقش یکی از اعضای تیم تغییر کرد",
   "project.member_left": "یکی از اعضا از پروژه خارج شد",
   "project.member_removed": "یکی از اعضا از تیم خارج شد"

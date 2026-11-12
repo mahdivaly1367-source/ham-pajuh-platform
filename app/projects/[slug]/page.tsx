@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import ProjectTaskBoard from "./task-board";
 
 type ProjectDetail = {
   project: {
@@ -400,6 +401,19 @@ export default function ProjectDetailPage() {
             <div className="project-edit-warning">پروژه خصوصی فقط برای اعضای آن قابل مشاهده است. پروژه دارای پیوند در فهرست عمومی دیده نمی‌شود اما با نشانی مستقیم قابل دسترسی است.</div>
             <div className="project-edit-actions"><button type="button" className="secondary-button" onClick={() => setEditOpen(false)}>انصراف</button><button type="submit" className="primary-button" disabled={savingEdit}>{savingEdit ? "در حال ذخیره..." : "ذخیره تغییرات"}</button></div>
           </form>
+        </section>
+      )}
+
+      {access.isMember ? (
+        <ProjectTaskBoard
+          projectId={project.id}
+          onTaskChanged={() => setRefreshKey((value) => value + 1)}
+        />
+      ) : (
+        <section className="project-task-section project-task-locked">
+          <span className="section-kicker">فضای همکاری تیم</span>
+          <h2>تابلوی وظایف پروژه</h2>
+          <p>وظایف، مسئولیت‌ها و وضعیت پیشرفت پس از عضویت در تیم برای اعضا نمایش داده می‌شود.</p>
         </section>
       )}
 
