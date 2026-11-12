@@ -11,6 +11,7 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}
 const eventLabels: Record<string, string> = {
   "project.created": "پروژه ایجاد شد",
   "project.updated": "مشخصات پروژه به‌روزرسانی شد",
+  "project.dataset_registered": "فراداده یک مجموعه‌داده ثبت شد",
   "collaboration.requested": "درخواست همکاری ثبت شد",
   "collaboration.accepted": "درخواست همکاری پذیرفته شد",
   "collaboration.declined": "درخواست همکاری رد شد",
@@ -80,6 +81,7 @@ export async function GET(
       .select({
         id: activityEvents.id,
         eventType: activityEvents.eventType,
+        metadata: activityEvents.metadata,
         occurredAt: activityEvents.occurredAt,
         actorName: user.name,
         actorHandle: profiles.handle
@@ -99,6 +101,14 @@ export async function GET(
         id: row.id,
         eventType: row.eventType,
         message: eventLabels[row.eventType] ?? "فعالیت جدیدی ثبت شد",
+        changes: row.eventType === "project.updated" ? Object.entries(
+          (row.metadata?.changes && typeof row.metadata.changes === "object" ? row.metadata.changes : {}) as Record<string, { from?: unknown; to?: unknown }>
+        ).map(([field, change]) => ({
+          field,
+          label: ({ title: "عنوان", summary: "خلاصه", visibility: "سطح دسترسی", status: "وضعیت", disciplineSlug: "حوزه علمی" } as Record<string, string>)[field] ?? field,
+          from: typeof change?.from === "string" ? change.from : change?.from === null ? "—" : "",
+          to: typeof change?.to === "string" ? change.to : change?.to === null ? "—" : ""
+        })) : [],
         actorName: row.actorName ?? "سامانه",
         actorHandle: row.actorHandle,
         occurredAt: row.occurredAt.toISOString()
