@@ -430,3 +430,36 @@
 .project-dataset-card details summary,.project-dataset-card>a{color:#4b8064;font-size:9px;cursor:pointer}
 .project-dataset-error{padding:9px;border-radius:8px;background:#fff2ef;color:#a44d3d;font-size:9px}
 @media(max-width:560px){.project-dataset-header{align-items:flex-start;flex-direction:column}.project-dataset-form-grid{grid-template-columns:1fr}}
+
+
+/* Structured research experiment notebook */
+.project-experiment-section{margin:24px 0;padding:clamp(16px,3vw,25px);border:1px solid #e6e9dc;border-radius:16px;background:linear-gradient(145deg,#fff,#fbfaf5);box-shadow:0 10px 30px #5a4b2410}
+.project-experiment-header{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:17px}
+.project-experiment-header h2{margin:4px 0;color:#4a4c37;font-size:17px}
+.project-experiment-header p,.project-experiment-footnote{margin:4px 0 0;color:#898b79;font-size:9px;line-height:1.9}
+.project-experiment-form{display:grid;gap:12px;padding:16px;margin:14px 0 20px;border:1px solid #ece9d9;border-radius:12px;background:#fbfaf5}
+.project-experiment-form label{display:grid;gap:6px;color:#64634d;font-size:10px;font-weight:800}
+.project-experiment-form input,.project-experiment-form textarea,.project-experiment-form select{width:100%;min-width:0;padding:9px 11px;border:1px solid #e5e2d4;border-radius:8px;background:#fff;color:#454937;font:inherit;font-size:10px;outline:0}
+.project-experiment-form textarea{min-height:72px;resize:vertical;line-height:1.9}
+.project-experiment-form input:focus,.project-experiment-form textarea:focus,.project-experiment-form select:focus{border-color:#b8b58d;box-shadow:0 0 0 3px #b8b58d20}
+.project-experiment-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.project-experiment-form-actions{display:flex;align-items:center;justify-content:space-between;gap:14px;padding-top:5px;color:#969681;font-size:8px;line-height:1.8}
+.project-experiment-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));gap:12px}
+.project-experiment-card{min-width:0;padding:15px;border:1px solid #ecebdc;border-radius:12px;background:#fff}
+.project-experiment-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#9a9a88;font-size:8px}
+.project-experiment-status{padding:4px 8px;border-radius:20px;background:#f2f0e4;color:#837747;font-weight:800}
+.project-experiment-status.status-in_progress{background:#eef2e8;color:#648052}
+.project-experiment-status.status-completed{background:#e9f4ec;color:#4e8260}
+.project-experiment-status.status-abandoned{background:#f7ece8;color:#a86b59}
+.project-experiment-card h3{margin:10px 0 6px;color:#484b37;font-size:12px;line-height:1.9}
+.project-experiment-dataset{margin:0 0 9px;color:#66806a;font-size:8px}
+.project-experiment-summary{margin-top:9px;padding:9px;border-radius:8px;background:#fafaf6}
+.project-experiment-summary strong,.project-experiment-detail-grid strong{color:#777451;font-size:9px}
+.project-experiment-summary p,.project-experiment-detail-grid p{margin:4px 0 0;color:#737565;font-size:9px;line-height:1.9;white-space:pre-wrap;overflow-wrap:anywhere}
+.project-experiment-card details{margin-top:11px;padding-top:9px;border-top:1px solid #f0efe6}
+.project-experiment-card details summary{color:#7d7a57;font-size:9px;font-weight:800;cursor:pointer}
+.project-experiment-detail-grid{display:grid;gap:10px;margin-top:10px}
+.project-experiment-error{padding:9px;border-radius:8px;background:#fff2ef;color:#a44d3d;font-size:9px}
+.project-experiment-footnote{margin-top:13px}
+.project-experiment-locked{box-shadow:none;border-style:dashed}
+@media(max-width:560px){.project-experiment-header{align-items:flex-start;flex-direction:column}.project-experiment-form-grid{grid-template-columns:1fr}.project-experiment-form-actions{align-items:flex-start;flex-direction:column}}

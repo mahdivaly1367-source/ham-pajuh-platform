@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import ProjectTaskBoard from "./task-board";
 import ProjectDiscussionBoard from "./discussion-board";
 import ProjectDatasetRegistry from "./dataset-registry";
+import ProjectExperimentLab from "./experiment-lab";
 
 type ProjectDetail = {
   project: {
@@ -427,6 +428,16 @@ export default function ProjectDetailPage() {
           <span className="section-kicker">داده و شواهد پژوهش</span>
           <h2>مجموعه‌داده‌های پروژه</h2>
           <p>فراداده و مشخصات مجموعه‌داده‌ها فقط برای اعضای تیم قابل مشاهده است.</p>
+        </section>
+      )}
+
+      {access.isMember ? (
+        <ProjectExperimentLab projectId={project.id} />
+      ) : (
+        <section className="project-experiment-section project-experiment-locked">
+          <span className="section-kicker">روش علمی و ثبت نتایج</span>
+          <h2>دفتر آزمایش و پروتکل پژوهش</h2>
+          <p>پروتکل‌ها و مشاهدات پژوهشی فقط برای اعضای تیم قابل مشاهده‌اند.</p>
         </section>
       )}
 
