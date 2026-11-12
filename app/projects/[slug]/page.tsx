@@ -204,7 +204,7 @@ export default function ProjectDetailPage() {
           <span>{members.length.toLocaleString("fa-IR")} عضو</span>
           <span>آخرین به‌روزرسانی: {new Date(project.updatedAt).toLocaleDateString("fa-IR")}</span>
         </div>
-        {project.visibility === "public" && !access.isMember && (
+        {project.visibility !== "private" && !access.isMember && (
           <div className="project-detail-actions">
             <button className="primary-button" type="button" disabled={requestLoading} onClick={requestToJoin}>
               {requestLoading ? "در حال ارسال..." : "درخواست همکاری"}
