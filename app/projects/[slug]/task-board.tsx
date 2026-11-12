@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
-type TaskStatus = "todo" | "in_progress" | "blocked" | "done";
+type TaskStatus = "todo" | "in_progress" | "blocked" | "in_review" | "changes_requested" | "done";
 type TaskPriority = "low" | "normal" | "high" | "urgent";
+type ReviewAction = "submit_for_review" | "approve" | "request_changes";
 
 type ProjectTask = {
   id: string;
@@ -14,6 +15,11 @@ type ProjectTask = {
   assigneeId: string | null;
   createdBy: string;
   dueAt: string | null;
+  reviewRequestedAt: string | null;
+  reviewSubmittedBy: string | null;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+  reviewComment: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -33,15 +39,19 @@ type TaskBoardPayload = {
 const columns: Array<{ status: TaskStatus; label: string; note: string }> = [
   { status: "todo", label: "برای انجام", note: "در صف شروع" },
   { status: "in_progress", label: "در حال انجام", note: "کارهای فعال" },
-  { status: "blocked", label: "متوقف / نیازمند پیگیری", note: "مانع یا وابستگی" },
-  { status: "done", label: "انجام‌شده", note: "تکمیل‌شده‌ها" }
+  { status: "blocked", label: "متوقف", note: "نیازمند پیگیری" },
+  { status: "in_review", label: "در انتظار بررسی", note: "ارسال‌شده برای تأیید" },
+  { status: "changes_requested", label: "نیازمند اصلاح", note: "بازگشت از بررسی" },
+  { status: "done", label: "تأییدشده", note: "تکمیل نهایی" }
 ];
 
 const statusLabels: Record<TaskStatus, string> = {
   todo: "برای انجام",
   in_progress: "در حال انجام",
   blocked: "متوقف",
-  done: "انجام‌شده"
+  in_review: "در انتظار بررسی",
+  changes_requested: "نیازمند اصلاح",
+  done: "تأییدشده"
 };
 
 const priorityLabels: Record<TaskPriority, string> = {
@@ -50,6 +60,14 @@ const priorityLabels: Record<TaskPriority, string> = {
   high: "زیاد",
   urgent: "فوری"
 };
+
+const workingStatuses: Array<"todo" | "in_progress" | "blocked"> = ["todo", "in_progress", "blocked"];
+
+function formatDate(value: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleString("fa-IR", { dateStyle: "medium", timeStyle: "short" });
+}
 
 export default function ProjectTaskBoard({
   projectId,
@@ -64,6 +82,7 @@ export default function ProjectTaskBoard({
   const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [updatingTask, setUpdatingTask] = useState("");
+  const [reviewComments, setReviewComments] = useState<Record<string, string>>({});
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -139,15 +158,24 @@ export default function ProjectTaskBoard({
     }
   }
 
-  async function changeStatus(task: ProjectTask, status: TaskStatus) {
-    if (!payload) return;
-    const isManager = ["owner", "maintainer"].includes(payload.access.role);
-    const canChange = isManager || (
-      payload.access.role === "contributor" &&
-      (task.createdBy === payload.access.currentUserId || task.assigneeId === payload.access.currentUserId)
-    );
-    if (!canChange || task.status === status) return;
+  async function changeStatus(task: ProjectTask, status: "todo" | "in_progress" | "blocked") {
+    await mutateTask(task, { status });
+  }
 
+  async function reviewTask(task: ProjectTask, action: ReviewAction) {
+    const comment = reviewComments[task.id]?.trim() ?? "";
+    if (action === "request_changes" && comment.length < 3) {
+      setNotice("برای درخواست اصلاح، توضیحی دست‌کم سه‌نویسه‌ای بنویسید.");
+      return;
+    }
+    await mutateTask(task, { action, ...(comment ? { comment } : {}) });
+    if (action !== "submit_for_review") {
+      setReviewComments((current) => ({ ...current, [task.id]: "" }));
+    }
+  }
+
+  async function mutateTask(task: ProjectTask, body: Record<string, string>) {
+    if (!payload) return;
     setUpdatingTask(task.id);
     setNotice("");
     try {
@@ -156,18 +184,24 @@ export default function ProjectTaskBoard({
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status })
+          body: JSON.stringify(body)
         }
       );
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setNotice(result.error ?? "تغییر وضعیت وظیفه انجام نشد.");
+        setNotice(result.error ?? "به‌روزرسانی وظیفه انجام نشد.");
         return;
       }
       setPayload((current) => current ? {
         ...current,
         tasks: current.tasks.map((item) => item.id === task.id ? result.task as ProjectTask : item)
       } : current);
+      const messages: Record<string, string> = {
+        submit_for_review: "وظیفه برای بررسی مدیران ارسال شد.",
+        approve: "وظیفه تأیید و تکمیل شد.",
+        request_changes: "درخواست اصلاح برای مسئول وظیفه ارسال شد."
+      };
+      setNotice("action" in body ? messages[body.action] ?? "وضعیت وظیفه به‌روزرسانی شد." : "وضعیت وظیفه به‌روزرسانی شد.");
       onTaskChanged();
     } catch {
       setNotice("ارتباط با سرور برقرار نشد.");
@@ -178,14 +212,15 @@ export default function ProjectTaskBoard({
 
   const isManager = payload ? ["owner", "maintainer"].includes(payload.access.role) : false;
   const availableAssignees = (payload?.members ?? []).filter((member) => member.role !== "viewer");
+  const currentUserId = payload?.access.currentUserId;
 
   return (
     <section className="project-task-section">
       <div className="project-task-header">
         <div>
           <span className="section-kicker">فضای همکاری تیم</span>
-          <h2>تابلوی وظایف</h2>
-          <p>کارهای پروژه را تقسیم کنید، مسئول هر کار را مشخص کنید و پیشرفت را ثبت کنید.</p>
+          <h2>تابلوی وظایف و تأیید دستاورد</h2>
+          <p>هر کار از اجرا به بررسی مدیران می‌رود و پس از تأیید، تکمیل نهایی می‌شود.</p>
         </div>
         {payload?.access.canCreate && (
           <button className="primary-button project-task-create-button" type="button" onClick={() => setFormOpen((open) => !open)}>
@@ -224,7 +259,7 @@ export default function ProjectTaskBoard({
           </label>
           <label className="project-task-description-field">
             توضیحات
-            <textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} rows={2} maxLength={5000} placeholder="شرح کوتاه کار، خروجی مورد انتظار یا وابستگی‌ها..." />
+            <textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} rows={2} maxLength={5000} placeholder="شرح کار، خروجی مورد انتظار یا معیار پذیرش..." />
           </label>
           <div className="project-task-form-actions">
             <button className="secondary-button" type="button" onClick={() => setFormOpen(false)}>انصراف</button>
@@ -253,8 +288,14 @@ export default function ProjectTaskBoard({
                   {tasks.length === 0 ? (
                     <div className="project-task-empty">فعلاً کاری اینجا نیست.</div>
                   ) : tasks.map((task) => {
-                    const isTaskParticipant = task.createdBy === payload.access.currentUserId || task.assigneeId === payload.access.currentUserId;
-                    const canChange = isManager || (payload.access.role === "contributor" && isTaskParticipant);
+                    const isTaskParticipant = task.createdBy === currentUserId || task.assigneeId === currentUserId;
+                    const canChangeStatus = isManager || (payload.access.role === "contributor" && isTaskParticipant && task.status !== "done");
+                    const canSubmit = payload.access.role !== "viewer" && isTaskParticipant &&
+                      ["todo", "in_progress", "blocked", "changes_requested"].includes(task.status);
+                    const selfSubmitted = task.reviewSubmittedBy === currentUserId;
+                    const reviewerName = task.reviewedBy ? memberNames.get(task.reviewedBy) ?? "مدیر پروژه" : "مدیر پروژه";
+                    const submitterName = task.reviewSubmittedBy ? memberNames.get(task.reviewSubmittedBy) ?? "عضو تیم" : "عضو تیم";
+
                     return (
                       <article className="project-task-card" key={task.id}>
                         <div className="project-task-card-top">
@@ -265,17 +306,74 @@ export default function ProjectTaskBoard({
                         {task.description && <p>{task.description}</p>}
                         <div className="project-task-card-footer">
                           <span>{task.assigneeId ? "مسئول: " + (memberNames.get(task.assigneeId) ?? "عضو تیم") : "بدون مسئول"}</span>
-                          {canChange ? (
-                            <select
-                              aria-label={"وضعیت وظیفه " + task.title}
-                              value={task.status}
-                              disabled={updatingTask === task.id}
-                              onChange={(event) => changeStatus(task, event.target.value as TaskStatus)}
-                            >
-                              {columns.map((item) => <option key={item.status} value={item.status}>{item.label}</option>)}
-                            </select>
-                          ) : <small>{statusLabels[task.status]}</small>}
+                          {task.status === "in_review"
+                            ? <small>در حال بررسی مدیران</small>
+                            : canChangeStatus ? (
+                              <select
+                                aria-label={"وضعیت وظیفه " + task.title}
+                                value={task.status}
+                                disabled={updatingTask === task.id}
+                                onChange={(event) => changeStatus(task, event.target.value as "todo" | "in_progress" | "blocked")}
+                              >
+                                {!workingStatuses.includes(task.status as "todo" | "in_progress" | "blocked") && (
+                                  <option value={task.status} disabled>{statusLabels[task.status]}</option>
+                                )}
+                                {workingStatuses.map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
+                              </select>
+                            ) : <small>{statusLabels[task.status]}</small>}
                         </div>
+
+                        {task.status === "in_review" && (
+                          <div className="project-task-review-meta">
+                            <strong>در صف تأیید نهایی</strong>
+                            <span>ارسال‌کننده: {submitterName}</span>
+                            {task.reviewRequestedAt && <time dateTime={task.reviewRequestedAt}>{formatDate(task.reviewRequestedAt)}</time>}
+                            {isManager && (selfSubmitted
+                              ? <p className="project-task-review-warning">ارسال‌کننده نمی‌تواند بررسی‌کننده همین مرحله باشد؛ مدیر دیگری باید تصمیم بگیرد.</p>
+                              : (
+                                <div className="project-task-review-actions">
+                                  <textarea
+                                    value={reviewComments[task.id] ?? ""}
+                                    onChange={(event) => setReviewComments((current) => ({ ...current, [task.id]: event.target.value }))}
+                                    rows={2}
+                                    maxLength={2000}
+                                    placeholder="یادداشت بررسی؛ برای درخواست اصلاح، نوشتن توضیح الزامی است."
+                                  />
+                                  <div>
+                                    <button type="button" className="secondary-button" disabled={updatingTask === task.id || (reviewComments[task.id] ?? "").trim().length < 3} onClick={() => reviewTask(task, "request_changes")}>درخواست اصلاح</button>
+                                    <button type="button" className="primary-button" disabled={updatingTask === task.id} onClick={() => reviewTask(task, "approve")}>تأیید نهایی</button>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        )}
+
+                        {task.status === "changes_requested" && (
+                          <div className="project-task-review-meta is-returned">
+                            <strong>درخواست اصلاح از طرف {reviewerName}</strong>
+                            {task.reviewComment && <p>{task.reviewComment}</p>}
+                            {task.reviewedAt && <time dateTime={task.reviewedAt}>{formatDate(task.reviewedAt)}</time>}
+                          </div>
+                        )}
+
+                        {task.status === "done" && task.reviewedAt && (
+                          <div className="project-task-review-meta is-approved">
+                            <strong>تأیید نهایی توسط {reviewerName}</strong>
+                            {task.reviewComment && <p>{task.reviewComment}</p>}
+                            <time dateTime={task.reviewedAt}>{formatDate(task.reviewedAt)}</time>
+                          </div>
+                        )}
+
+                        {canSubmit && (
+                          <button
+                            className="project-task-submit-review"
+                            type="button"
+                            disabled={updatingTask === task.id}
+                            onClick={() => reviewTask(task, "submit_for_review")}
+                          >
+                            {updatingTask === task.id ? "در حال ارسال..." : "ارسال برای تأیید نهایی"}
+                          </button>
+                        )}
                       </article>
                     );
                   })}
@@ -288,8 +386,9 @@ export default function ProjectTaskBoard({
 
       <div className="project-task-footnote">
         {isManager
-          ? "مدیران پروژه می‌توانند همه وظایف را مدیریت کنند."
-          : "مشارکت‌کنندگان می‌توانند وضعیت کارهایی را که ایجاد کرده‌اند یا مسئول آن هستند تغییر دهند؛ مشاهده‌گران دسترسی فقط‌خواندنی دارند."}
+          ? "مدیران پروژه درخواست بررسی را تأیید یا برای اصلاح بازمی‌گردانند. ارسال‌کننده نمی‌تواند کار خودش را تأیید کند."
+          : "مسئول یا ایجادکننده وظیفه می‌تواند آن را برای بررسی بفرستد؛ تأیید نهایی فقط با مدیر پروژه است. مشاهده‌گران فقط می‌خوانند."}
+        {" "}ثبت تأیید، گردش کار داخلی پروژه است و به‌تنهایی گواه اعتبار علمی یا داوری مستقل نیست.
       </div>
     </section>
   );

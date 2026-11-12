@@ -75,7 +75,7 @@ export const projectStatus = pgEnum("project_status", ["idea", "active", "paused
 export const projectMemberRole = pgEnum("project_member_role", ["owner", "maintainer", "contributor", "viewer"]);
 export const collaborationRequestStatus = pgEnum("collaboration_request_status", ["pending", "accepted", "declined", "withdrawn"]);
 export const artifactType = pgEnum("artifact_type", ["source_code", "document", "dataset", "model", "cad", "schematic", "image", "video", "simulation", "other"]);
-export const projectTaskStatus = pgEnum("project_task_status", ["todo", "in_progress", "blocked", "done"]);
+export const projectTaskStatus = pgEnum("project_task_status", ["todo", "in_progress", "blocked", "done", "in_review", "changes_requested"]);
 export const projectTaskPriority = pgEnum("project_task_priority", ["low", "normal", "high", "urgent"]);
 export const projectDiscussionKind = pgEnum("project_discussion_kind", ["general", "question", "decision", "review"]);
 export const projectDiscussionStatus = pgEnum("project_discussion_status", ["open", "resolved"]);
@@ -160,6 +160,11 @@ export const projectTasks = pgTable("project_task", {
   priority: projectTaskPriority("priority").default("normal").notNull(),
   dueAt: timestamp("due_at", { withTimezone: true, mode: "date" }),
   completedAt: timestamp("completed_at", { withTimezone: true, mode: "date" }),
+  reviewRequestedAt: timestamp("review_requested_at", { withTimezone: true, mode: "date" }),
+  reviewSubmittedBy: text("review_submitted_by").references(() => user.id, { onDelete: "set null" }),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: "date" }),
+  reviewedBy: text("reviewed_by").references(() => user.id, { onDelete: "set null" }),
+  reviewComment: text("review_comment").default("").notNull(),
   ...timestamps()
 }, (table) => [
   index("project_task_project_status_created_idx").on(table.projectId, table.status, table.createdAt),

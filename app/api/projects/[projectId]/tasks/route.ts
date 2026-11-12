@@ -70,6 +70,11 @@ export async function GET(
         assigneeId: projectTasks.assigneeId,
         createdBy: projectTasks.createdBy,
         dueAt: projectTasks.dueAt,
+        reviewRequestedAt: projectTasks.reviewRequestedAt,
+        reviewSubmittedBy: projectTasks.reviewSubmittedBy,
+        reviewedAt: projectTasks.reviewedAt,
+        reviewedBy: projectTasks.reviewedBy,
+        reviewComment: projectTasks.reviewComment,
         createdAt: projectTasks.createdAt,
         updatedAt: projectTasks.updatedAt
       })

@@ -371,6 +371,76 @@ async function main() {
   const contributorTaskStatusBody = await contributorTaskStatus.json();
   assert.equal(contributorTaskStatusBody.task?.status, "in_progress");
 
+  const submitTaskForReview = await request("/api/projects/" + publicProject.id + "/tasks/" + taskId, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: collaboratorCookie },
+    body: JSON.stringify({ action: "submit_for_review" })
+  });
+  assert.equal(submitTaskForReview.status, 200, "The task participant should be able to submit work for review.");
+  const submittedTaskBody = await submitTaskForReview.json();
+  assert.equal(submittedTaskBody.task?.status, "in_review");
+  assert.equal(submittedTaskBody.task?.reviewSubmittedBy, collaboratorId);
+  assert.ok(submittedTaskBody.task?.reviewRequestedAt);
+
+  const contributorSelfApproval = await request("/api/projects/" + publicProject.id + "/tasks/" + taskId, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: collaboratorCookie },
+    body: JSON.stringify({ action: "approve" })
+  });
+  assert.equal(contributorSelfApproval.status, 403, "A contributor may not approve a task, including their own submission.");
+
+  const requestTaskChanges = await request("/api/projects/" + publicProject.id + "/tasks/" + taskId, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: ownerCookie },
+    body: JSON.stringify({ action: "request_changes", comment: "لطفاً روش تحلیل و منبع داده‌ها را دقیق‌تر مستند کنید." })
+  });
+  assert.equal(requestTaskChanges.status, 200, "A project manager should be able to request documented changes.");
+  const changesBody = await requestTaskChanges.json();
+  assert.equal(changesBody.task?.status, "changes_requested");
+  assert.equal(changesBody.task?.reviewedBy, ownerId);
+  assert.match(changesBody.task?.reviewComment ?? "", /مستند/);
+
+  const resubmitAfterChanges = await request("/api/projects/" + publicProject.id + "/tasks/" + taskId, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: collaboratorCookie },
+    body: JSON.stringify({ status: "in_progress" })
+  });
+  assert.equal(resubmitAfterChanges.status, 200, "The assigned contributor should be able to resume requested changes.");
+
+  const secondTaskSubmission = await request("/api/projects/" + publicProject.id + "/tasks/" + taskId, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: collaboratorCookie },
+    body: JSON.stringify({ action: "submit_for_review" })
+  });
+  assert.equal(secondTaskSubmission.status, 200, "The contributor should be able to resubmit a corrected task.");
+
+  const approveTask = await request("/api/projects/" + publicProject.id + "/tasks/" + taskId, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: ownerCookie },
+    body: JSON.stringify({ action: "approve", comment: "خروجی بررسی شد و معیارهای پذیرش رعایت شده‌اند." })
+  });
+  assert.equal(approveTask.status, 200, "A different project manager should be able to approve the submitted task.");
+  const approvedTaskBody = await approveTask.json();
+  assert.equal(approvedTaskBody.task?.status, "done");
+  assert.equal(approvedTaskBody.task?.reviewedBy, ownerId);
+  assert.ok(approvedTaskBody.task?.reviewedAt);
+  assert.ok(approvedTaskBody.task?.completedAt);
+
+  const contributorReopenApprovedTask = await request("/api/projects/" + publicProject.id + "/tasks/" + taskId, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: collaboratorCookie },
+    body: JSON.stringify({ status: "in_progress" })
+  });
+  assert.equal(contributorReopenApprovedTask.status, 403, "Only project managers may reopen a formally approved task.");
+
+  const finalTaskListResponse = await request("/api/projects/" + publicProject.id + "/tasks", {
+    headers: { cookie: ownerCookie }
+  });
+  const finalTaskList = await finalTaskListResponse.json();
+  const finalTask = finalTaskList.tasks?.find((task) => task.id === taskId);
+  assert.equal(finalTask?.status, "done");
+  assert.equal(finalTask?.reviewedBy, ownerId);
+  assert.match(finalTask?.reviewComment ?? "", /معیارهای پذیرش/);
 
   const anonymousDiscussions = await request("/api/projects/" + publicProject.id + "/discussions");
   assert.equal(anonymousDiscussions.status, 401, "Anonymous visitors must not read internal project discussions.");

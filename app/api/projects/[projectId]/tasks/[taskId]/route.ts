@@ -13,16 +13,21 @@ const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }, "تاریخ مهلت معتبر نیست.");
 
-const updateTaskInput = z.object({
-  title: z.string().trim().min(3).max(180).optional(),
-  description: z.string().trim().max(5000).optional(),
-  status: z.enum(["todo", "in_progress", "blocked", "done"]).optional(),
-  priority: z.enum(["low", "normal", "high", "urgent"]).optional(),
-  assigneeId: z.string().max(128).nullable().optional(),
-  dueDate: z.union([dateOnly, z.null()]).optional()
-}).strict().refine((value) => Object.keys(value).length > 0, {
-  message: "دست‌کم یک فیلد برای تغییر انتخاب کنید."
-});
+const updateTaskInput = z.union([
+  z.object({ action: z.literal("submit_for_review") }).strict(),
+  z.object({ action: z.literal("approve"), comment: z.string().trim().max(2000).optional() }).strict(),
+  z.object({ action: z.literal("request_changes"), comment: z.string().trim().min(3).max(2000) }).strict(),
+  z.object({
+    title: z.string().trim().min(3).max(180).optional(),
+    description: z.string().trim().max(5000).optional(),
+    status: z.enum(["todo", "in_progress", "blocked"]).optional(),
+    priority: z.enum(["low", "normal", "high", "urgent"]).optional(),
+    assigneeId: z.string().max(128).nullable().optional(),
+    dueDate: z.union([dateOnly, z.null()]).optional()
+  }).strict().refine((value) => Object.keys(value).length > 0, {
+    message: "دست‌کم یک فیلد برای تغییر انتخاب کنید."
+  })
+]);
 
 function dueDateToTimestamp(value: string | null) {
   return value ? new Date(value + "T23:59:59.999Z") : null;
@@ -83,21 +88,115 @@ export async function PATCH(
       return NextResponse.json({ error: "وظیفه پیدا نشد." }, { status: 404 });
     }
 
+    const actorId = session.user.id;
     const isManager = membership.role === "owner" || membership.role === "maintainer";
-    const statusOnly = Object.keys(parsed.data).length === 1 && parsed.data.status !== undefined;
-    const isTaskParticipant = task.createdBy === session.user.id || task.assigneeId === session.user.id;
+    const isTaskParticipant = task.createdBy === actorId || task.assigneeId === actorId;
+    const now = new Date();
+
+    if ("action" in parsed.data) {
+      const action = parsed.data.action;
+
+      if (action === "submit_for_review") {
+        if (membership.role === "viewer" || !isTaskParticipant) {
+          return NextResponse.json({ error: "فقط مسئول یا ایجادکننده وظیفه می‌تواند آن را برای بررسی ارسال کند." }, { status: 403 });
+        }
+        if (!["todo", "in_progress", "blocked", "changes_requested"].includes(task.status)) {
+          return NextResponse.json({ error: "این وظیفه در وضعیت فعلی قابل ارسال برای بررسی نیست." }, { status: 409 });
+        }
+
+        const updated = await db.transaction(async (tx) => {
+          const [result] = await tx.update(projectTasks).set({
+            status: "in_review",
+            reviewRequestedAt: now,
+            reviewSubmittedBy: actorId,
+            reviewedAt: null,
+            reviewedBy: null,
+            reviewComment: "",
+            completedAt: null,
+            updatedAt: now
+          }).where(and(
+            eq(projectTasks.id, taskId),
+            eq(projectTasks.projectId, projectId),
+            eq(projectTasks.status, task.status)
+          )).returning();
+
+          if (!result) return null;
+          await tx.insert(activityEvents).values({
+            projectId,
+            actorId,
+            eventType: "project.task_submitted_for_review",
+            metadata: { taskId, title: task.title }
+          });
+          return result;
+        });
+        if (!updated) {
+          return NextResponse.json({ error: "وضعیت وظیفه هم‌زمان تغییر کرده است؛ دوباره بارگذاری کنید." }, { status: 409 });
+        }
+        return NextResponse.json({ task: updated });
+      }
+
+      if (!isManager) {
+        return NextResponse.json({ error: "فقط مدیران پروژه می‌توانند نتیجه بررسی را ثبت کنند." }, { status: 403 });
+      }
+      if (task.status !== "in_review") {
+        return NextResponse.json({ error: "این وظیفه در صف بررسی قرار ندارد." }, { status: 409 });
+      }
+      if (task.reviewSubmittedBy === actorId) {
+        return NextResponse.json({ error: "برای جلوگیری از تأیید خودکار، ارسال‌کننده نمی‌تواند بررسی‌کننده همان مرحله باشد." }, { status: 403 });
+      }
+
+      const comment = "comment" in parsed.data ? (parsed.data.comment ?? "") : "";
+      const approved = action === "approve";
+      const updated = await db.transaction(async (tx) => {
+        const [result] = await tx.update(projectTasks).set({
+          status: approved ? "done" : "changes_requested",
+          reviewedAt: now,
+          reviewedBy: actorId,
+          reviewComment: comment,
+          completedAt: approved ? now : null,
+          updatedAt: now
+        }).where(and(
+          eq(projectTasks.id, taskId),
+          eq(projectTasks.projectId, projectId),
+          eq(projectTasks.status, "in_review")
+        )).returning();
+
+        if (!result) return null;
+        await tx.insert(activityEvents).values({
+          projectId,
+          actorId,
+          eventType: approved ? "project.task_approved" : "project.task_changes_requested",
+          metadata: { taskId, title: task.title, comment }
+        });
+        return result;
+      });
+      if (!updated) {
+        return NextResponse.json({ error: "این وظیفه قبلاً بررسی شده یا وضعیت آن تغییر کرده است." }, { status: 409 });
+      }
+      return NextResponse.json({ task: updated });
+    }
+
+    const changes = parsed.data;
+    const statusOnly = Object.keys(changes).length === 1 && changes.status !== undefined;
     if (!isManager && !(membership.role === "contributor" && statusOnly && isTaskParticipant)) {
       return NextResponse.json({
-        error: "اعضای عادی فقط می‌توانند وضعیت وظیفه‌ای را تغییر دهند که ایجاد کرده‌اند یا مسئول آن هستند."
+        error: "مشارکت‌کنندگان فقط می‌توانند وضعیت وظیفه‌ای را که ایجاد کرده‌اند یا مسئول آن هستند تغییر دهند."
       }, { status: 403 });
     }
 
-    if (parsed.data.assigneeId) {
+    if (changes.status !== undefined && task.status === "in_review") {
+      return NextResponse.json({ error: "تا پایان بررسی مدیران، وضعیت این وظیفه قابل تغییر نیست." }, { status: 409 });
+    }
+    if (changes.status !== undefined && task.status === "done" && !isManager) {
+      return NextResponse.json({ error: "وظیفه تأییدشده فقط توسط مدیر پروژه قابل بازگشایی است." }, { status: 403 });
+    }
+
+    if (changes.assigneeId) {
       const [assignee] = await db.select({ role: projectMembers.role })
         .from(projectMembers)
         .where(and(
           eq(projectMembers.projectId, projectId),
-          eq(projectMembers.userId, parsed.data.assigneeId)
+          eq(projectMembers.userId, changes.assigneeId)
         ))
         .limit(1);
       if (!assignee || assignee.role === "viewer") {
@@ -105,42 +204,42 @@ export async function PATCH(
       }
     }
 
-    const now = new Date();
     const updateValues = {
-      ...(parsed.data.title !== undefined ? { title: parsed.data.title } : {}),
-      ...(parsed.data.description !== undefined ? { description: parsed.data.description } : {}),
-      ...(parsed.data.status !== undefined ? {
-        status: parsed.data.status,
-        completedAt: parsed.data.status === "done" ? (task.completedAt ?? now) : null
-      } : {}),
-      ...(parsed.data.priority !== undefined ? { priority: parsed.data.priority } : {}),
-      ...(parsed.data.assigneeId !== undefined ? { assigneeId: parsed.data.assigneeId } : {}),
-      ...(parsed.data.dueDate !== undefined ? { dueAt: dueDateToTimestamp(parsed.data.dueDate) } : {}),
+      ...(changes.title !== undefined ? { title: changes.title } : {}),
+      ...(changes.description !== undefined ? { description: changes.description } : {}),
+      ...(changes.status !== undefined ? { status: changes.status, completedAt: null } : {}),
+      ...(changes.priority !== undefined ? { priority: changes.priority } : {}),
+      ...(changes.assigneeId !== undefined ? { assigneeId: changes.assigneeId } : {}),
+      ...(changes.dueDate !== undefined ? { dueAt: dueDateToTimestamp(changes.dueDate) } : {}),
       updatedAt: now
     };
 
     const updated = await db.transaction(async (tx) => {
       const [result] = await tx.update(projectTasks)
         .set(updateValues)
-        .where(and(eq(projectTasks.id, taskId), eq(projectTasks.projectId, projectId)))
+        .where(and(
+          eq(projectTasks.id, taskId),
+          eq(projectTasks.projectId, projectId),
+          eq(projectTasks.status, task.status)
+        ))
         .returning();
       if (!result) return null;
 
-      const eventType = parsed.data.status !== undefined && parsed.data.status !== task.status
+      const eventType = changes.status !== undefined && changes.status !== task.status
         ? "project.task_status_changed"
         : "project.task_updated";
 
       await tx.insert(activityEvents).values({
         projectId,
-        actorId: session.user.id,
+        actorId,
         eventType,
-        metadata: { taskId, title: result.title, changedFields: Object.keys(parsed.data) }
+        metadata: { taskId, title: result.title, changedFields: Object.keys(changes) }
       });
       return result;
     });
 
     if (!updated) {
-      return NextResponse.json({ error: "وظیفه پیدا نشد." }, { status: 404 });
+      return NextResponse.json({ error: "وضعیت وظیفه تغییر کرده است؛ دوباره بارگذاری کنید." }, { status: 409 });
     }
     return NextResponse.json({ task: updated });
   } catch (error) {

@@ -348,3 +348,28 @@
 .project-discussion-readonly{padding:9px 11px;border-radius:8px;background:#f5f7f5;color:#7f8c85;font-size:9px;line-height:1.8}
 .project-discussion-locked{background:#f9fbf9;border-style:dashed;box-shadow:none}
 @media(max-width:700px){.project-discussion-section{margin:18px 12px 0;padding:19px 16px}.project-discussion-header{align-items:flex-start;flex-direction:column}.project-discussion-form-row{grid-template-columns:1fr}.project-discussion-form-foot{align-items:flex-start;flex-direction:column}.project-discussion-topic-footer>span:nth-child(2){margin-left:0}}
+
+
+/* Formal task review workflow */
+.project-task-board{grid-template-columns:repeat(3,minmax(0,1fr))}
+.project-task-column.status-in_review>header>span{background:#eaf0fb;color:#5575a8}
+.project-task-column.status-changes_requested>header>span{background:#fbefeb;color:#b76b55}
+.project-task-column.status-done>header>span{background:#e9f4ed;color:#4f8a68}
+.project-task-review-meta{display:grid;gap:5px;margin-top:10px;padding:10px;background:#f4f7fb;border:1px solid #e4ebf5;border-radius:8px;color:#58708d;font-size:8px;line-height:1.8}
+.project-task-review-meta strong{font-size:9px;color:#49688d}
+.project-task-review-meta p{margin:0;color:#6d7779;font-size:9px;line-height:1.9;white-space:pre-wrap;overflow-wrap:anywhere}
+.project-task-review-meta time{color:#89979b;font-size:8px}
+.project-task-review-meta.is-returned{background:#fff8f4;border-color:#f3e4da;color:#a66b53}
+.project-task-review-meta.is-returned strong{color:#a86149}
+.project-task-review-meta.is-approved{background:#f0f8f2;border-color:#e0eee3;color:#4e8060}
+.project-task-review-meta.is-approved strong{color:#437652}
+.project-task-review-warning{margin:0;color:#a66b53;font-size:8px;line-height:1.8}
+.project-task-review-actions{display:grid;gap:7px;margin-top:4px}
+.project-task-review-actions textarea{width:100%;min-width:0;resize:vertical;border:1px solid #dfe7ed;border-radius:7px;background:#fff;padding:8px;color:#34494c;font:inherit;font-size:9px;line-height:1.8}
+.project-task-review-actions>div{display:flex;flex-wrap:wrap;gap:6px}
+.project-task-review-actions button{min-height:29px;padding:0 9px;font-size:8px}
+.project-task-submit-review{width:100%;margin-top:10px;min-height:32px;border:1px solid #d8e8e1;border-radius:7px;background:#eff7f2;color:#3f7a61;font-size:9px;font-weight:800;cursor:pointer}
+.project-task-submit-review:hover{background:#e5f2e9}
+.project-task-submit-review:disabled,.project-task-review-actions button:disabled{opacity:.55;cursor:not-allowed}
+@media(max-width:900px){.project-task-board{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.project-task-board{grid-template-columns:1fr}}
