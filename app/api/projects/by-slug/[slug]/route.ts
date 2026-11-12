@@ -40,7 +40,7 @@ export async function GET(
       .from(projects)
       .leftJoin(disciplines, eq(projects.disciplineId, disciplines.id))
       .innerJoin(user, eq(projects.ownerId, user.id))
-      .leftJoin(profiles, eq(projects.ownerId, profiles.userId))
+      .leftJoin(profiles, and(eq(projects.ownerId, profiles.userId), eq(profiles.isPublic, true)))
       .where(eq(projects.slug, slug))
       .limit(1);
 
@@ -60,7 +60,7 @@ export async function GET(
       currentRole = membership?.role ?? null;
     }
 
-    if (project.visibility !== "public" && !currentRole) {
+    if (project.visibility === "private" && !currentRole) {
       return NextResponse.json({ error: "پروژه پیدا نشد یا دسترسی به آن مجاز نیست." }, { status: 404 });
     }
 
@@ -74,7 +74,7 @@ export async function GET(
       })
       .from(projectMembers)
       .innerJoin(user, eq(projectMembers.userId, user.id))
-      .leftJoin(profiles, eq(projectMembers.userId, profiles.userId))
+      .leftJoin(profiles, and(eq(projectMembers.userId, profiles.userId), eq(profiles.isPublic, true)))
       .where(eq(projectMembers.projectId, project.id))
       .orderBy(desc(projectMembers.joinedAt));
 
