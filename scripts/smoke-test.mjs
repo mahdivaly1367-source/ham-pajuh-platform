@@ -354,6 +354,8 @@ async function main() {
   const taskList = await taskListResponse.json();
   assert.ok(taskList.tasks?.some((task) => task.id === taskId && task.assigneeId === collaboratorId));
   assert.ok(taskList.members?.some((member) => member.userId === collaboratorId));
+  const ownerId = taskList.members?.find((member) => member.role === "owner")?.userId;
+  assert.ok(ownerId, "The task board should identify the project owner for the review test.");
 
   const forbiddenTaskEdit = await request("/api/projects/" + publicProject.id + "/tasks/" + taskId, {
     method: "PATCH",
