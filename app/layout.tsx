@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import NotificationCenter from "./notification-center";
 
 export const metadata: Metadata = {
   title: "هم‌پژوه | شبکه همکاری علمی و فناورانه",
@@ -16,5 +17,5 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  return <html lang="fa" dir="rtl"><body>{children}</body></html>;
+  return <html lang="fa" dir="rtl"><body>{children}<NotificationCenter /></body></html>;
 }

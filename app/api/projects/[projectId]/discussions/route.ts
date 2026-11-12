@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAuth } from "@/lib/auth";
 import { getDb } from "@/src/db";
-import { activityEvents, profiles, projectDiscussionPosts, projectDiscussionTopics, projectMembers, projectTasks, user } from "@/src/db/schema";
+import { activityEvents, notifications, profiles, projectDiscussionPosts, projectDiscussionTopics, projectMembers, projectTasks, projects, user } from "@/src/db/schema";
+import { buildNotificationRows } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -123,6 +124,20 @@ export async function POST(request: Request, context: { params: Promise<{ projec
         projectId, actorId: session.user.id, eventType: "project.discussion_created",
         metadata: { topicId: topic.id, title: topic.title, kind: topic.kind, taskId: topic.taskId }
       });
+      const members = await tx.select({ userId: projectMembers.userId }).from(projectMembers)
+        .where(eq(projectMembers.projectId, projectId));
+      const [project] = await tx.select({ slug: projects.slug }).from(projects)
+        .where(eq(projects.id, projectId)).limit(1);
+      const rows = buildNotificationRows({
+        recipientIds: members.map((member) => member.userId),
+        actorId: session.user.id,
+        projectId,
+        type: "discussion_created",
+        title: "گفت‌وگوی تازه در پروژه",
+        body: topic.title,
+        href: project ? "/projects/" + encodeURIComponent(project.slug) : "/dashboard"
+      });
+      if (rows.length) await tx.insert(notifications).values(rows);
       return topic;
     });
     return NextResponse.json({ topic: created }, { status: 201 });

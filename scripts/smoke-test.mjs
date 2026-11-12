@@ -89,6 +89,9 @@ async function main() {
   const anonymousDashboard = await request("/api/my/projects");
   assert.equal(anonymousDashboard.status, 401, "Anonymous users must not access the personal project dashboard.");
 
+  const anonymousNotifications = await request("/api/notifications");
+  assert.equal(anonymousNotifications.status, 401, "Anonymous visitors must not read personal notifications.");
+
   const ownerCookie = await register("HamPajuh CI Owner");
   const profileResponse = await request("/api/profile", {
     headers: { cookie: ownerCookie }
@@ -309,6 +312,24 @@ async function main() {
   );
   assert.equal(reviewResponse.status, 200, "The owner should be able to accept a collaboration request.");
 
+  const ownerCollaborationNotifications = await request("/api/notifications", {
+    headers: { cookie: ownerCookie }
+  });
+  const ownerCollaborationBody = await ownerCollaborationNotifications.json();
+  assert.ok(
+    ownerCollaborationBody.notifications?.some((item) => item.type === "collaboration_request"),
+    "A new collaboration request should notify project managers."
+  );
+
+  const acceptedCollaborationNotifications = await request("/api/notifications", {
+    headers: { cookie: collaboratorCookie }
+  });
+  const acceptedCollaborationBody = await acceptedCollaborationNotifications.json();
+  assert.ok(
+    acceptedCollaborationBody.notifications?.some((item) => item.type === "collaboration_accepted"),
+    "The applicant should be notified when the project accepts their request."
+  );
+
   const collaboratorDashboard = await request("/api/my/projects", {
     headers: { cookie: collaboratorCookie }
   });
@@ -384,6 +405,16 @@ async function main() {
   assert.equal(submittedTaskBody.task?.reviewSubmittedBy, collaboratorId);
   assert.ok(submittedTaskBody.task?.reviewRequestedAt);
 
+  const ownerNotificationsAfterSubmission = await request("/api/notifications", {
+    headers: { cookie: ownerCookie }
+  });
+  assert.equal(ownerNotificationsAfterSubmission.status, 200, "Authenticated users should be able to read their own notifications.");
+  const ownerNotificationBody = await ownerNotificationsAfterSubmission.json();
+  assert.ok(
+    ownerNotificationBody.notifications?.some((item) => item.type === "task_review_requested"),
+    "Submitting a task for review should notify project managers."
+  );
+
   const contributorSelfApproval = await request("/api/projects/" + publicProject.id + "/tasks/" + taskId, {
     method: "PATCH",
     headers: { "content-type": "application/json", cookie: collaboratorCookie },
@@ -401,6 +432,31 @@ async function main() {
   assert.equal(changesBody.task?.status, "changes_requested");
   assert.equal(changesBody.task?.reviewedBy, ownerId);
   assert.match(changesBody.task?.reviewComment ?? "", /مستند/);
+
+  const collaboratorNotificationsAfterChanges = await request("/api/notifications", {
+    headers: { cookie: collaboratorCookie }
+  });
+  assert.equal(collaboratorNotificationsAfterChanges.status, 200);
+  const collaboratorNotificationBody = await collaboratorNotificationsAfterChanges.json();
+  const changesNotification = collaboratorNotificationBody.notifications?.find(
+    (item) => item.type === "task_review_changes_requested"
+  );
+  assert.ok(changesNotification, "A requested task revision should notify the contributor.");
+  assert.ok(changesNotification.body.includes("مستند"), "The review note should be included in the notification.");
+
+  const crossAccountNotificationRead = await request("/api/notifications", {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: ownerCookie },
+    body: JSON.stringify({ action: "read", notificationId: changesNotification.id })
+  });
+  assert.equal(crossAccountNotificationRead.status, 404, "Users must not mark another account's notification as read.");
+
+  const ownNotificationRead = await request("/api/notifications", {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: collaboratorCookie },
+    body: JSON.stringify({ action: "read", notificationId: changesNotification.id })
+  });
+  assert.equal(ownNotificationRead.status, 200, "Users should be able to mark their own notifications as read.");
 
   const resubmitAfterChanges = await request("/api/projects/" + publicProject.id + "/tasks/" + taskId, {
     method: "PATCH",
@@ -427,6 +483,22 @@ async function main() {
   assert.equal(approvedTaskBody.task?.reviewedBy, ownerId);
   assert.ok(approvedTaskBody.task?.reviewedAt);
   assert.ok(approvedTaskBody.task?.completedAt);
+
+  const collaboratorNotificationsAfterApproval = await request("/api/notifications", {
+    headers: { cookie: collaboratorCookie }
+  });
+  const approvalNoticeBody = await collaboratorNotificationsAfterApproval.json();
+  assert.ok(
+    approvalNoticeBody.notifications?.some((item) => item.type === "task_review_approved"),
+    "Final task approval should notify the work submitter."
+  );
+
+  const markAllNotificationsRead = await request("/api/notifications", {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: collaboratorCookie },
+    body: JSON.stringify({ action: "read_all" })
+  });
+  assert.equal(markAllNotificationsRead.status, 200, "Users should be able to mark all their notifications as read.");
 
   const contributorReopenApprovedTask = await request("/api/projects/" + publicProject.id + "/tasks/" + taskId, {
     method: "PATCH",

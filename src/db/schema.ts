@@ -256,6 +256,23 @@ export const projectArtifacts = pgTable("project_artifact", {
   index("project_artifact_type_idx").on(table.type)
 ]);
 
+
+export const notifications = pgTable("notification", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  recipientId: text("recipient_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  actorId: text("actor_id").references(() => user.id, { onDelete: "set null" }),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 80 }).notNull(),
+  title: varchar("title", { length: 180 }).notNull(),
+  body: text("body").default("").notNull(),
+  href: varchar("href", { length: 500 }).default("/dashboard").notNull(),
+  readAt: timestamp("read_at", { withTimezone: true, mode: "date" }),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull()
+}, (table) => [
+  index("notification_recipient_created_idx").on(table.recipientId, table.createdAt),
+  index("notification_recipient_unread_idx").on(table.recipientId, table.createdAt).where(sql`read_at IS NULL`)
+]);
+
 export const activityEvents = pgTable("activity_event", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }),

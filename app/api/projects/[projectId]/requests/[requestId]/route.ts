@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAuth } from "@/lib/auth";
 import { getDb } from "@/src/db";
-import { activityEvents, collaborationRequests, projectMembers } from "@/src/db/schema";
+import { activityEvents, collaborationRequests, notifications, projectMembers, projects } from "@/src/db/schema";
+import { buildNotificationRows } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 
@@ -101,6 +102,19 @@ export async function PATCH(
         metadata: { requestId, participantId: collaborationRequest.userId }
       });
 
+      const [project] = await tx.select({ slug: projects.slug, title: projects.title }).from(projects)
+        .where(eq(projects.id, projectId)).limit(1);
+      const accepted = parsed.data.action === "accept";
+      const rows = buildNotificationRows({
+        recipientIds: [collaborationRequest.userId],
+        actorId: session.user.id,
+        projectId: accepted ? projectId : null,
+        type: accepted ? "collaboration_accepted" : "collaboration_declined",
+        title: accepted ? "درخواست همکاری پذیرفته شد" : "درخواست همکاری رد شد",
+        body: "وضعیت درخواست شما برای پروژه «" + (project?.title ?? "پروژه") + "» تغییر کرد.",
+        href: accepted && project ? "/projects/" + encodeURIComponent(project.slug) : "/dashboard"
+      });
+      if (rows.length) await tx.insert(notifications).values(rows);
       return { kind: "updated" as const, status, userId: collaborationRequest.userId };
     });
 

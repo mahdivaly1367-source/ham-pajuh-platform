@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAuth } from "@/lib/auth";
 import { getDb } from "@/src/db";
-import { activityEvents, profiles, projectDiscussionPosts, projectDiscussionTopics, projectMembers, user } from "@/src/db/schema";
+import { activityEvents, notifications, profiles, projectDiscussionPosts, projectDiscussionTopics, projectMembers, projects, user } from "@/src/db/schema";
+import { buildNotificationRows } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -63,7 +64,7 @@ export async function POST(request: Request, context: { params: Promise<{ projec
     if (!membership) return NextResponse.json({ error: "گفت‌وگو پیدا نشد." }, { status: 404 });
     if (membership.role === "viewer") return NextResponse.json({ error: "نقش مشاهده‌گر فقط اجازه خواندن گفت‌وگوها را دارد." }, { status: 403 });
     const [topic] = await db.select({
-      id: projectDiscussionTopics.id, title: projectDiscussionTopics.title, status: projectDiscussionTopics.status
+      id: projectDiscussionTopics.id, title: projectDiscussionTopics.title, status: projectDiscussionTopics.status, authorId: projectDiscussionTopics.authorId
     }).from(projectDiscussionTopics)
       .where(and(eq(projectDiscussionTopics.id, topicId), eq(projectDiscussionTopics.projectId, projectId))).limit(1);
     if (!topic) return NextResponse.json({ error: "گفت‌وگو پیدا نشد." }, { status: 404 });
@@ -79,6 +80,23 @@ export async function POST(request: Request, context: { params: Promise<{ projec
         projectId, actorId: session.user.id, eventType: "project.discussion_reply_created",
         metadata: { topicId, title: topic.title, postId: post.id }
       });
+      const [authorMembership] = await tx.select({ userId: projectMembers.userId }).from(projectMembers)
+        .where(and(
+          eq(projectMembers.projectId, projectId),
+          eq(projectMembers.userId, topic.authorId)
+        )).limit(1);
+      const [project] = await tx.select({ slug: projects.slug }).from(projects)
+        .where(eq(projects.id, projectId)).limit(1);
+      const rows = buildNotificationRows({
+        recipientIds: authorMembership ? [topic.authorId] : [],
+        actorId: session.user.id,
+        projectId,
+        type: "discussion_reply",
+        title: "پاسخ تازه به گفت‌وگوی شما",
+        body: topic.title,
+        href: project ? "/projects/" + encodeURIComponent(project.slug) : "/dashboard"
+      });
+      if (rows.length) await tx.insert(notifications).values(rows);
       return post;
     });
     return NextResponse.json({

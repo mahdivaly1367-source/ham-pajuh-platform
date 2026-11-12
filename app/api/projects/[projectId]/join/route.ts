@@ -1,9 +1,10 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAuth } from "@/lib/auth";
 import { getDb } from "@/src/db";
-import { activityEvents, collaborationRequests, projectMembers, projects } from "@/src/db/schema";
+import { activityEvents, collaborationRequests, notifications, projectMembers, projects } from "@/src/db/schema";
+import { buildNotificationRows } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 
@@ -43,7 +44,7 @@ export async function POST(
     }
     const db = getDb();
     const [project] = await db
-      .select({ id: projects.id, visibility: projects.visibility, ownerId: projects.ownerId })
+      .select({ id: projects.id, visibility: projects.visibility, ownerId: projects.ownerId, title: projects.title, slug: projects.slug })
       .from(projects)
       .where(eq(projects.id, projectId))
       .limit(1);
@@ -100,6 +101,21 @@ export async function POST(
         metadata: { requestId: inserted.id }
       });
 
+      const managers = await tx.select({ userId: projectMembers.userId }).from(projectMembers)
+        .where(and(
+          eq(projectMembers.projectId, projectId),
+          inArray(projectMembers.role, ["owner", "maintainer"])
+        ));
+      const rows = buildNotificationRows({
+        recipientIds: managers.map((member) => member.userId),
+        actorId: session.user.id,
+        projectId,
+        type: "collaboration_request",
+        title: "درخواست همکاری تازه",
+        body: "برای پروژه «" + project.title + "» درخواست همکاری ثبت شده است.",
+        href: "/projects/" + encodeURIComponent(project.slug)
+      });
+      if (rows.length) await tx.insert(notifications).values(rows);
       return inserted;
     });
 

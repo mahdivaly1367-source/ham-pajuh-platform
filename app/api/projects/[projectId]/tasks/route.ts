@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAuth } from "@/lib/auth";
 import { getDb } from "@/src/db";
-import { activityEvents, projectMembers, projectTasks, user } from "@/src/db/schema";
+import { activityEvents, notifications, projectMembers, projectTasks, projects, user } from "@/src/db/schema";
+import { buildNotificationRows } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 
@@ -177,6 +178,21 @@ export async function POST(
         eventType: "project.task_created",
         metadata: { taskId: task.id, title: task.title }
       });
+
+      if (task.assigneeId) {
+        const [project] = await tx.select({ slug: projects.slug }).from(projects)
+          .where(eq(projects.id, projectId)).limit(1);
+        const rows = buildNotificationRows({
+          recipientIds: [task.assigneeId],
+          actorId: session.user.id,
+          projectId,
+          type: "task_assigned",
+          title: "وظیفه تازه به شما واگذار شد",
+          body: task.title,
+          href: project ? "/projects/" + encodeURIComponent(project.slug) : "/dashboard"
+        });
+        if (rows.length) await tx.insert(notifications).values(rows);
+      }
 
       return task;
     });

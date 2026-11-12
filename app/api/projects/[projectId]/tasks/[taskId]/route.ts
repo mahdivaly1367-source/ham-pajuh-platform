@@ -1,9 +1,10 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAuth } from "@/lib/auth";
 import { getDb } from "@/src/db";
-import { activityEvents, projectMembers, projectTasks } from "@/src/db/schema";
+import { activityEvents, notifications, projectMembers, projectTasks, projects } from "@/src/db/schema";
+import { buildNotificationRows } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 
@@ -127,6 +128,24 @@ export async function PATCH(
             eventType: "project.task_submitted_for_review",
             metadata: { taskId, title: task.title }
           });
+
+          const managers = await tx.select({ userId: projectMembers.userId }).from(projectMembers)
+            .where(and(
+              eq(projectMembers.projectId, projectId),
+              inArray(projectMembers.role, ["owner", "maintainer"])
+            ));
+          const [project] = await tx.select({ slug: projects.slug }).from(projects)
+            .where(eq(projects.id, projectId)).limit(1);
+          const rows = buildNotificationRows({
+            recipientIds: managers.map((member) => member.userId),
+            actorId,
+            projectId,
+            type: "task_review_requested",
+            title: "وظیفه‌ای برای تأیید ارسال شد",
+            body: task.title,
+            href: project ? "/projects/" + encodeURIComponent(project.slug) : "/dashboard"
+          });
+          if (rows.length) await tx.insert(notifications).values(rows);
           return result;
         });
         if (!updated) {
@@ -168,6 +187,19 @@ export async function PATCH(
           eventType: approved ? "project.task_approved" : "project.task_changes_requested",
           metadata: { taskId, title: task.title, comment }
         });
+
+        const [project] = await tx.select({ slug: projects.slug }).from(projects)
+          .where(eq(projects.id, projectId)).limit(1);
+        const rows = buildNotificationRows({
+          recipientIds: [task.reviewSubmittedBy, task.createdBy, task.assigneeId],
+          actorId,
+          projectId,
+          type: approved ? "task_review_approved" : "task_review_changes_requested",
+          title: approved ? "وظیفه شما تأیید شد" : "برای وظیفه شما اصلاح خواسته شده است",
+          body: comment || task.title,
+          href: project ? "/projects/" + encodeURIComponent(project.slug) : "/dashboard"
+        });
+        if (rows.length) await tx.insert(notifications).values(rows);
         return result;
       });
       if (!updated) {
@@ -235,6 +267,21 @@ export async function PATCH(
         eventType,
         metadata: { taskId, title: result.title, changedFields: Object.keys(changes) }
       });
+
+      if (changes.assigneeId && changes.assigneeId !== task.assigneeId) {
+        const [project] = await tx.select({ slug: projects.slug }).from(projects)
+          .where(eq(projects.id, projectId)).limit(1);
+        const rows = buildNotificationRows({
+          recipientIds: [changes.assigneeId],
+          actorId,
+          projectId,
+          type: "task_assigned",
+          title: "وظیفه تازه به شما واگذار شد",
+          body: result.title,
+          href: project ? "/projects/" + encodeURIComponent(project.slug) : "/dashboard"
+        });
+        if (rows.length) await tx.insert(notifications).values(rows);
+      }
       return result;
     });
 
