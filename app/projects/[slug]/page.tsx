@@ -265,7 +265,7 @@ export default function ProjectDetailPage() {
             <label>خلاصه پروژه<textarea value={editForm.summary} onChange={(event) => setEditForm((current) => ({ ...current, summary: event.target.value }))} minLength={20} maxLength={280} rows={2} required /></label>
             <label>توضیحات کامل<textarea value={editForm.description} onChange={(event) => setEditForm((current) => ({ ...current, description: event.target.value }))} maxLength={12000} rows={5} /></label>
             <div className="project-edit-selects">
-              <label>وضعیت<select value={editForm.status} onChange={(event) => setEditForm((current) => ({ ...current, status: event.target.value }))}><option value="idea">ایده اولیه</option><option value="active">در حال توسعه</option><option value="paused">متوقف موقت</option><option value="completed">تکمیل‌شده</option><option value="archived">بایگانی‌شده</option></select></label>
+              <label>وضعیت<select value={editForm.status} onChange={(event) => setEditForm((current) => ({ ...current, status: event.target.value }))}><option value="idea">ایده اولیه</option><option value="active">در حال توسعه</option><option value="paused">متوقف موقت</option><option value="completed">تکمیل‌شده</option></select></label>
               <label>سطح دسترسی<select value={editForm.visibility} onChange={(event) => setEditForm((current) => ({ ...current, visibility: event.target.value }))}><option value="private">خصوصی</option><option value="public">عمومی</option><option value="unlisted">دارای پیوند</option></select></label>
             </div>
             <div className="project-edit-warning">پروژه خصوصی فقط برای اعضای آن قابل مشاهده است. پروژه دارای پیوند در فهرست عمومی دیده نمی‌شود اما با نشانی مستقیم قابل دسترسی است.</div>
