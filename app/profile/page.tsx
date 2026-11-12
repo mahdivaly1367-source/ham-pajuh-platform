@@ -11,6 +11,7 @@ type Profile = {
   location: string | null;
   website: string | null;
   isPublic: boolean;
+  skills: string[];
 };
 
 type ProfilePayload = {
