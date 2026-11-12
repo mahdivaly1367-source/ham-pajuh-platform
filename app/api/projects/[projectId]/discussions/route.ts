@@ -77,7 +77,7 @@ export async function GET(request: Request, context: { params: Promise<{ project
         return {
           ...topic,
           replyCount: count?.replyCount ?? 0,
-          latestReplyAt: count?.latestReplyAt?.toISOString() ?? null,
+          latestReplyAt: count?.latestReplyAt ? String(count.latestReplyAt) : null,
           isAuthor: topic.authorId === session.user.id,
           canResolve: isManager || topic.authorId === session.user.id
         };
