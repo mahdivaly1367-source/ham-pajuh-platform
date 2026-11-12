@@ -322,6 +322,29 @@ async function main() {
   );
   assert.equal(secondJoinResponse.status, 409, "Existing members must not submit another join request.");
 
+  const ownerCannotLeave = await request(
+    `/api/projects/${publicProject.id}/members/${profile.user.id}`,
+    { method: "DELETE", headers: { cookie: ownerCookie } }
+  );
+  assert.equal(ownerCannotLeave.status, 409, "Project owners must not be able to leave without transferring ownership.");
+
+  const collaboratorLeave = await request(
+    `/api/projects/${publicProject.id}/members/${collaboratorId}`,
+    { method: "DELETE", headers: { cookie: collaboratorCookie } }
+  );
+  assert.equal(collaboratorLeave.status, 200, "A non-owner member should be able to leave a project.");
+
+  const afterLeaveDetailResponse = await request("/api/projects/by-slug/" + encodeURIComponent(publicProject.slug));
+  const afterLeaveDetail = await afterLeaveDetailResponse.json();
+  assert.ok(!afterLeaveDetail.members?.some((member) => member.role === "contributor"), "A member who leaves should be removed from the project team.");
+
+  const afterLeaveDashboardResponse = await request("/api/my/projects", {
+    headers: { cookie: collaboratorCookie }
+  });
+  const afterLeaveDashboard = await afterLeaveDashboardResponse.json();
+  assert.ok(!afterLeaveDashboard.projects?.some((item) => item.id === publicProject.id), "A project should disappear from a user's dashboard after leaving.");
+
+
   console.log("PASS: anonymous writes are rejected");
   console.log("PASS: signup creates authenticated sessions");
   console.log("PASS: first login provisions a profile and profile edits persist");
@@ -333,6 +356,7 @@ async function main() {
   console.log("PASS: only project owners can edit project metadata");
   console.log("PASS: personal project dashboard shows only projects the user belongs to");
   console.log("PASS: only owners can promote or change project member roles");
+  console.log("PASS: members can leave projects and project owners cannot leave without ownership transfer");
   console.log("PASS: collaboration requests are visible only to project managers");
   console.log("PASS: owners can accept requests and add contributors to the team");
 }

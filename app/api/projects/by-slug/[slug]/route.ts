@@ -94,7 +94,8 @@ export async function GET(
         ownerHandle: project.ownerHandle
       },
       members: members.map((member) => ({
-        memberId: currentRole === "owner" ? member.userId : null,
+        memberId: currentRole === "owner" || member.userId === session?.user?.id ? member.userId : null,
+        isCurrentUser: member.userId === session?.user?.id,
         name: member.name,
         handle: member.handle,
         role: member.role,
@@ -104,7 +105,8 @@ export async function GET(
         isMember: Boolean(currentRole),
         role: currentRole,
         canManage: currentRole === "owner" || currentRole === "maintainer",
-        canEdit: currentRole === "owner"
+        canEdit: currentRole === "owner",
+        canLeave: Boolean(currentRole && currentRole !== "owner")
       }
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {

@@ -21,12 +21,13 @@ type ProjectDetail = {
   };
   members: Array<{
     memberId: string | null;
+    isCurrentUser: boolean;
     name: string;
     handle: string | null;
     role: string;
     joinedAt: string;
   }>;
-  access: { isMember: boolean; role: string | null; canManage: boolean; canEdit: boolean };
+  access: { isMember: boolean; role: string | null; canManage: boolean; canEdit: boolean; canLeave: boolean };
 };
 
 type CollaborationRequest = {
@@ -70,6 +71,7 @@ export default function ProjectDetailPage() {
   const [editForm, setEditForm] = useState({ title: "", summary: "", description: "", visibility: "private", status: "idea" });
   const [memberRoles, setMemberRoles] = useState<Record<string, string>>({});
   const [updatingMember, setUpdatingMember] = useState("");
+  const [removingMember, setRemovingMember] = useState("");
 
   const loadProject = useCallback(async () => {
     const response = await fetch("/api/projects/by-slug/" + encodeURIComponent(slug), { cache: "no-store" });
@@ -208,6 +210,39 @@ export default function ProjectDetailPage() {
     }
   }
 
+  async function removeMember(memberId: string, isSelf: boolean) {
+    if (!data) return;
+    const prompt = isSelf
+      ? "از این پروژه خارج می‌شوی. برای مشارکت دوباره باید درخواست همکاری بفرستی. ادامه می‌دهی؟"
+      : "این عضو از پروژه حذف می‌شود. ادامه می‌دهی؟";
+    if (!window.confirm(prompt)) return;
+
+    setRemovingMember(memberId);
+    setNotice("");
+    try {
+      const response = await fetch(
+        "/api/projects/" + encodeURIComponent(data.project.id) + "/members/" + encodeURIComponent(memberId),
+        { method: "DELETE" }
+      );
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setNotice(payload.error ?? "خروج یا حذف عضو انجام نشد.");
+        return;
+      }
+      setNotice(payload.message ?? "عضویت به‌روزرسانی شد.");
+      if (isSelf && data.project.visibility === "private") {
+        setData(null);
+        setError("از پروژه خصوصی خارج شدی و دیگر به فضای آن دسترسی نداری.");
+      } else {
+        setRefreshKey((value) => value + 1);
+      }
+    } catch {
+      setNotice("ارتباط با سرور برقرار نشد.");
+    } finally {
+      setRemovingMember("");
+    }
+  }
+
   async function saveProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!data) return;
@@ -337,9 +372,17 @@ export default function ProjectDetailPage() {
                       <option value="viewer">مشاهده‌گر</option>
                     </select>
                     <button type="button" disabled={updatingMember === member.memberId || memberRoles[member.memberId] === member.role} onClick={() => saveMemberRole(member.memberId as string)}>
-                      {updatingMember === member.memberId ? "..." : "ذخیره"}
+                      {updatingMember === member.memberId ? "..." : "ذخیره نقش"}
+                    </button>
+                    <button className="project-member-remove" type="button" disabled={removingMember === member.memberId} onClick={() => removeMember(member.memberId as string, false)}>
+                      {removingMember === member.memberId ? "..." : "حذف عضو"}
                     </button>
                   </div>
+                )}
+                {member.isCurrentUser && access.canLeave && member.memberId && (
+                  <button className="project-member-remove" type="button" disabled={removingMember === member.memberId} onClick={() => removeMember(member.memberId as string, true)}>
+                    {removingMember === member.memberId ? "..." : "ترک پروژه"}
+                  </button>
                 )}
               </div>
             ))}
