@@ -39,6 +39,7 @@ type ActivityEvent = {
   actorName: string;
   actorHandle: string | null;
   occurredAt: string;
+  changes?: Array<{ field: string; label: string; from: string; to: string }>;
 };
 
 type CollaborationRequest = {
@@ -447,6 +448,18 @@ export default function ProjectDetailPage() {
                     <div className="project-activity-copy">
                       <strong>{event.message}</strong>
                       <small>{event.actorHandle ? <Link href={"/u/" + encodeURIComponent(event.actorHandle)}>{event.actorName}</Link> : event.actorName}</small>
+                      {!!event.changes?.length && (
+                        <ul className="project-activity-changes">
+                          {event.changes.map((change) => (
+                            <li key={change.field}>
+                              <span>{change.label}</span>
+                              <del>{change.from}</del>
+                              <span aria-hidden="true"> ← </span>
+                              <strong>{change.to}</strong>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                     <time dateTime={event.occurredAt}>{new Date(event.occurredAt).toLocaleString("fa-IR", { dateStyle: "medium", timeStyle: "short" })}</time>
                   </div>

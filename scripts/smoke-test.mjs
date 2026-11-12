@@ -142,6 +142,15 @@ async function main() {
   assert.equal(ownerProjectEdit.status, 200, "Project owners should be able to update project metadata.");
   const ownerProjectEditBody = await ownerProjectEdit.json();
   assert.equal(ownerProjectEditBody.project?.status, "active");
+  const editedActivityResponse = await request(`/api/projects/${publicProject.id}/activity`);
+  assert.equal(editedActivityResponse.status, 200);
+  const editedActivity = await editedActivityResponse.json();
+  const metadataChange = editedActivity.events?.find((event) => event.eventType === "project.updated");
+  assert.ok(metadataChange, "Project metadata updates should appear in the activity history.");
+  assert.ok(metadataChange.changes?.some((change) => change.field === "title" && change.to === ownerProjectEditBody.project.title),
+    "Activity history should expose the new title value.");
+  assert.ok(metadataChange.changes?.some((change) => change.field === "status" && change.from === "idea" && change.to === "active"),
+    "Activity history should expose before and after status values.");
 
   const ownerDashboardResponse = await request("/api/my/projects", {
     headers: { cookie: ownerCookie }
