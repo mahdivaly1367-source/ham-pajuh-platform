@@ -21,6 +21,9 @@ export async function POST(
     }
 
     const { projectId } = await context.params;
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(projectId)) {
+      return NextResponse.json({ error: "پروژه عمومی پیدا نشد." }, { status: 404 });
+    }
     const db = getDb();
     const [project] = await db
       .select({ id: projects.id, visibility: projects.visibility, ownerId: projects.ownerId })
@@ -28,7 +31,7 @@ export async function POST(
       .where(eq(projects.id, projectId))
       .limit(1);
 
-    if (!project || project.visibility !== "public") {
+    if (!project || project.visibility === "private") {
       return NextResponse.json({ error: "پروژه عمومی پیدا نشد." }, { status: 404 });
     }
 
