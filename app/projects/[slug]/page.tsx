@@ -30,6 +30,15 @@ type ProjectDetail = {
   access: { isMember: boolean; role: string | null; canManage: boolean; canEdit: boolean; canLeave: boolean };
 };
 
+type ActivityEvent = {
+  id: string;
+  eventType: string;
+  message: string;
+  actorName: string;
+  actorHandle: string | null;
+  occurredAt: string;
+};
+
 type CollaborationRequest = {
   id: string;
   message: string;
@@ -60,6 +69,7 @@ export default function ProjectDetailPage() {
   const slug = params.slug;
   const [data, setData] = useState<ProjectDetail | null>(null);
   const [requests, setRequests] = useState<CollaborationRequest[]>([]);
+  const [activity, setActivity] = useState<ActivityEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [requestLoading, setRequestLoading] = useState(false);
   const [reviewingId, setReviewingId] = useState("");
@@ -127,6 +137,26 @@ export default function ProjectDetailPage() {
       });
     return () => { active = false; };
   }, [data]);
+
+  useEffect(() => {
+    if (!data?.project.id) {
+      setActivity([]);
+      return;
+    }
+
+    let active = true;
+    fetch("/api/projects/" + encodeURIComponent(data.project.id) + "/activity", { cache: "no-store" })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error ?? "دریافت تاریخچه پروژه انجام نشد.");
+        return payload.events as ActivityEvent[];
+      })
+      .then((items) => { if (active) setActivity(items); })
+      .catch((reason: unknown) => {
+        if (active) setNotice(reason instanceof Error ? reason.message : "خطا در دریافت تاریخچه پروژه.");
+      });
+    return () => { active = false; };
+  }, [data?.project.id, refreshKey]);
 
   async function requestToJoin() {
     if (!data) return;
@@ -350,6 +380,26 @@ export default function ProjectDetailPage() {
           <div className="section-kicker">معرفی و مستندات</div>
           <h2>درباره این پروژه</h2>
           <div className="project-description">{project.description || project.summary}</div>
+          <div className="project-activity-section">
+            <div className="section-kicker">ردپای مشارکت</div>
+            <h2>تاریخچه فعالیت پروژه</h2>
+            {activity.length ? (
+              <div className="project-activity-list">
+                {activity.map((event) => (
+                  <div className="project-activity-row" key={event.id}>
+                    <span className="project-activity-marker" />
+                    <div className="project-activity-copy">
+                      <strong>{event.message}</strong>
+                      <small>{event.actorHandle ? <Link href={"/u/" + encodeURIComponent(event.actorHandle)}>{event.actorName}</Link> : event.actorName}</small>
+                    </div>
+                    <time dateTime={event.occurredAt}>{new Date(event.occurredAt).toLocaleString("fa-IR", { dateStyle: "medium", timeStyle: "short" })}</time>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="project-empty-note">هنوز رویدادی برای نمایش ثبت نشده است.</div>
+            )}
+          </div>
         </section>
 
         <aside className="project-detail-sidebar">

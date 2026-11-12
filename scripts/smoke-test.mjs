@@ -196,6 +196,18 @@ async function main() {
   const publicDetail = await publicDetailResponse.json();
   assert.equal(publicDetail.project?.id, publicProject.id);
 
+  const publicActivityResponse = await request(`/api/projects/${publicProject.id}/activity`);
+  assert.equal(publicActivityResponse.status, 200, "Public project activity should be readable.");
+  const initialActivity = await publicActivityResponse.json();
+  assert.ok(initialActivity.events?.some((event) => event.eventType === "project.created"), "Project creation should be recorded in its activity history.");
+
+  const privateActivityHidden = await request(`/api/projects/${privateProject.id}/activity`);
+  assert.equal(privateActivityHidden.status, 404, "Private project activity must be hidden from anonymous visitors.");
+  const privateActivityOwner = await request(`/api/projects/${privateProject.id}/activity`, {
+    headers: { cookie: ownerCookie }
+  });
+  assert.equal(privateActivityOwner.status, 200, "Project members should be able to read private project activity.");
+
   const hiddenPrivateDetail = await request("/api/projects/by-slug/" + encodeURIComponent(privateProject.slug));
   assert.equal(hiddenPrivateDetail.status, 404, "Private project details must be hidden from anonymous visitors.");
   const ownerPrivateDetail = await request("/api/projects/by-slug/" + encodeURIComponent(privateProject.slug), {
@@ -343,6 +355,9 @@ async function main() {
   });
   const afterLeaveDashboard = await afterLeaveDashboardResponse.json();
   assert.ok(!afterLeaveDashboard.projects?.some((item) => item.id === publicProject.id), "A project should disappear from a user's dashboard after leaving.");
+  const finalActivityResponse = await request(`/api/projects/${publicProject.id}/activity`);
+  const finalActivity = await finalActivityResponse.json();
+  assert.ok(finalActivity.events?.some((event) => event.eventType === "project.member_left"), "Leaving a project should be recorded in its activity history.");
 
 
   console.log("PASS: anonymous writes are rejected");
@@ -357,6 +372,7 @@ async function main() {
   console.log("PASS: personal project dashboard shows only projects the user belongs to");
   console.log("PASS: only owners can promote or change project member roles");
   console.log("PASS: members can leave projects and project owners cannot leave without ownership transfer");
+  console.log("PASS: project activity is private-aware and records creation and member departure");
   console.log("PASS: collaboration requests are visible only to project managers");
   console.log("PASS: owners can accept requests and add contributors to the team");
 }

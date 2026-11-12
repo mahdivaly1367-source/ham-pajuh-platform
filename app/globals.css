@@ -215,3 +215,16 @@
 
 .project-member-remove{border:0;border-radius:6px;padding:6px 8px;background:#fbefed;color:#a15a50;font-family:inherit;font-size:8px;font-weight:800}
 .project-member-remove:disabled{opacity:.45;cursor:not-allowed}
+
+/* Project activity timeline */
+.project-activity-section{border-top:1px solid #edf1ee;margin-top:23px;padding-top:19px}
+.project-activity-section h2{font-size:15px;font-weight:900;margin:4px 0 13px}
+.project-activity-list{display:flex;flex-direction:column}
+.project-activity-row{display:flex;align-items:center;gap:11px;padding:11px 1px;border-bottom:1px solid #f0f3f1}
+.project-activity-row:last-child{border-bottom:0}
+.project-activity-marker{width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:#83b79b;box-shadow:0 0 0 4px #eef6f0}
+.project-activity-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+.project-activity-copy strong{font-size:9px;color:#4d6259}
+.project-activity-copy small{font-size:8px;color:#8c9991}
+.project-activity-row time{font-size:8px;color:#9aa59f;white-space:nowrap}
+@media(max-width:520px){.project-activity-row{align-items:flex-start;flex-wrap:wrap}.project-activity-row time{margin-right:20px}}
