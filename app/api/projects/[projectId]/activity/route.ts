@@ -12,6 +12,7 @@ const eventLabels: Record<string, string> = {
   "project.created": "پروژه ایجاد شد",
   "project.updated": "مشخصات پروژه به‌روزرسانی شد",
   "project.dataset_registered": "فراداده یک مجموعه‌داده ثبت شد",
+  "project.experiment_registered": "یک آزمایش پژوهشی ثبت شد",
   "collaboration.requested": "درخواست همکاری ثبت شد",
   "collaboration.accepted": "درخواست همکاری پذیرفته شد",
   "collaboration.declined": "درخواست همکاری رد شد",
