@@ -72,6 +72,8 @@ export default function ProjectDetailPage() {
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [requestLoading, setRequestLoading] = useState(false);
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [requestMessage, setRequestMessage] = useState("");
   const [reviewingId, setReviewingId] = useState("");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -158,13 +160,16 @@ export default function ProjectDetailPage() {
     return () => { active = false; };
   }, [data?.project.id, refreshKey]);
 
-  async function requestToJoin() {
+  async function requestToJoin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     if (!data) return;
     setRequestLoading(true);
     setNotice("");
     try {
       const response = await fetch("/api/projects/" + encodeURIComponent(data.project.id) + "/join", {
-        method: "POST"
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: requestMessage.trim() })
       });
       const payload = await response.json().catch(() => ({}));
       if (response.status === 401) {
@@ -175,6 +180,7 @@ export default function ProjectDetailPage() {
         setNotice(payload.error ?? "ثبت درخواست همکاری انجام نشد.");
         return;
       }
+      setRequestOpen(false);
       setNotice(payload.message ?? "درخواست همکاری ثبت شد.");
     } catch {
       setNotice("ارتباط با سرور برقرار نشد.");
@@ -348,9 +354,31 @@ export default function ProjectDetailPage() {
         {access.canEdit && <div className="project-detail-actions"><button className="secondary-button" type="button" onClick={() => setEditOpen((open) => !open)}>{editOpen ? "بستن ویرایش" : "ویرایش مشخصات پروژه"}</button></div>}
         {project.visibility !== "private" && !access.isMember && (
           <div className="project-detail-actions">
-            <button className="primary-button" type="button" disabled={requestLoading} onClick={requestToJoin}>
-              {requestLoading ? "در حال ارسال..." : "درخواست همکاری"}
-            </button>
+            {!requestOpen ? (
+              <button className="primary-button" type="button" onClick={() => setRequestOpen(true)}>
+                درخواست همکاری
+              </button>
+            ) : (
+              <form className="collaboration-request-form" onSubmit={requestToJoin}>
+                <label>
+                  پیام به مدیر پروژه
+                  <textarea
+                    value={requestMessage}
+                    onChange={(event) => setRequestMessage(event.target.value)}
+                    rows={3}
+                    maxLength={1000}
+                    placeholder="کمی درباره انگیزه، مهارت‌ها یا زمانی که می‌توانی برای این پروژه بگذاری بنویس..."
+                  />
+                  <span>نوشتن پیام اختیاری است؛ حداکثر ۱۰۰۰ نویسه.</span>
+                </label>
+                <div>
+                  <button className="secondary-button" type="button" onClick={() => setRequestOpen(false)}>انصراف</button>
+                  <button className="primary-button" type="submit" disabled={requestLoading}>
+                    {requestLoading ? "در حال ارسال..." : "ارسال درخواست"}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         )}
       </section>

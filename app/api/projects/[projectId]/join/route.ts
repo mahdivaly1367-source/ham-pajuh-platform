@@ -1,10 +1,13 @@
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getAuth } from "@/lib/auth";
 import { getDb } from "@/src/db";
 import { activityEvents, collaborationRequests, projectMembers, projects } from "@/src/db/schema";
 
 export const runtime = "nodejs";
+
+const requestInput = z.object({ message: z.string().trim().max(1000).optional().default("") });
 
 export async function POST(
   request: Request,
@@ -21,6 +24,20 @@ export async function POST(
     }
 
     const { projectId } = await context.params;
+    let body: unknown = {};
+    const rawBody = await request.text();
+    if (rawBody.trim()) {
+      try {
+        body = JSON.parse(rawBody);
+      } catch {
+        return NextResponse.json({ error: "بدنه درخواست JSON معتبر نیست." }, { status: 400 });
+      }
+    }
+    const parsed = requestInput.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "پیام درخواست معتبر نیست یا بیش از ۱۰۰۰ نویسه است." }, { status: 400 });
+    }
+
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(projectId)) {
       return NextResponse.json({ error: "پروژه عمومی پیدا نشد." }, { status: 404 });
     }
@@ -69,7 +86,7 @@ export async function POST(
         .values({
           projectId,
           userId: session.user.id,
-          message: ""
+          message: parsed.data.message
         })
         .onConflictDoNothing()
         .returning({ id: collaborationRequests.id });

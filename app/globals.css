@@ -234,3 +234,12 @@
 .public-profile-skills>strong{display:block;color:#52685f;font-size:9px;margin-bottom:8px}
 .public-profile-skills>div{display:flex;flex-wrap:wrap;gap:6px}
 .public-profile-skills span{display:inline-flex;padding:5px 8px;border-radius:6px;background:#eff6f1;border:1px solid #e2eee6;color:#4c7964;font-size:8px;font-weight:700}
+
+/* Collaboration request message */
+.collaboration-request-form{width:min(460px,100%);padding:13px;background:#f5f8f5;border:1px solid #e5eee8;border-radius:11px;display:flex;flex-direction:column;gap:10px}
+.collaboration-request-form label{display:flex;flex-direction:column;gap:6px;font-size:9px;font-weight:800;color:#52685f}
+.collaboration-request-form textarea{width:100%;border:1px solid #dfe9e3;border-radius:8px;padding:9px 11px;resize:vertical;min-height:74px;background:#fff;color:var(--ink);font:inherit;font-size:9px;line-height:1.9;outline:0}
+.collaboration-request-form textarea:focus{border-color:#9ccfc0;box-shadow:0 0 0 3px rgba(19,124,112,.07)}
+.collaboration-request-form label>span{font-size:8px;color:#89958f;font-weight:400}
+.collaboration-request-form>div{display:flex;justify-content:flex-end;gap:7px}
+.collaboration-request-form .primary-button,.collaboration-request-form .secondary-button{min-height:35px;font-size:9px;padding:0 12px}

@@ -240,11 +240,13 @@ async function main() {
   const simultaneousJoins = await Promise.all([
     request(`/api/projects/${publicProject.id}/join`, {
       method: "POST",
-      headers: { cookie: collaboratorCookie }
+      headers: { "content-type": "application/json", cookie: collaboratorCookie },
+      body: JSON.stringify({ message: "من تجربه کار با TypeScript و تحلیل داده دارم و هفته‌ای چند ساعت می‌توانم مشارکت کنم." })
     }),
     request(`/api/projects/${publicProject.id}/join`, {
       method: "POST",
-      headers: { cookie: collaboratorCookie }
+      headers: { "content-type": "application/json", cookie: collaboratorCookie },
+      body: JSON.stringify({ message: "درخواست تکراری هم‌زمان" })
     })
   ]);
   const simultaneousResults = await Promise.all(simultaneousJoins.map(async (response) => ({
@@ -269,6 +271,7 @@ async function main() {
   });
   const pendingBody = await pendingResponse.json();
   assert.equal(pendingBody.requests?.length, 1, "The owner should see exactly one pending request.");
+  assert.match(pendingBody.requests[0].message, /TypeScript/, "The applicant's collaboration message should be visible to project managers.");
 
   const reviewResponse = await request(
     `/api/projects/${publicProject.id}/requests/${joinBody.requestId}`,
