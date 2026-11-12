@@ -1,7 +1,7 @@
-import { and, count, desc, eq, ne } from "drizzle-orm";
+import { and, asc, count, desc, eq, ne } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "@/src/db";
-import { activityEvents, disciplines, profiles, projectMembers, projects, user } from "@/src/db/schema";
+import { activityEvents, disciplines, profileSkills, profiles, projectMembers, projects, user } from "@/src/db/schema";
 
 export const runtime = "nodejs";
 
@@ -39,6 +39,12 @@ export async function GET(
       return NextResponse.json({ error: "پروفایل عمومی پیدا نشد." }, { status: 404 });
     }
 
+    const skillRows = await db
+      .select({ label: profileSkills.label })
+      .from(profileSkills)
+      .where(eq(profileSkills.userId, identity.userId))
+      .orderBy(asc(profileSkills.sortOrder), asc(profileSkills.label));
+
     const projectRows = await db
       .select({
         id: projects.id,
@@ -73,7 +79,8 @@ export async function GET(
         headline: identity.headline,
         bio: identity.bio,
         location: identity.location,
-        website: identity.website
+        website: identity.website,
+        skills: skillRows.map((skill) => skill.label)
       },
       stats: {
         publicProjects: projectRows.length,

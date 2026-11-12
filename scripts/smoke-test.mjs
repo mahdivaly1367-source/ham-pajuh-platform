@@ -106,12 +106,15 @@ async function main() {
       bio: "پروفایل آزمایشی برای بررسی ذخیره و بازیابی اطلاعات.",
       location: "آزمایشگاه CI",
       website: "",
-      isPublic: true
+      isPublic: true,
+      skills: ["TypeScript", "Drizzle ORM", "پژوهش داده", "typescript"]
     })
   });
   assert.equal(updatedProfileResponse.status, 200, "Profile updates should be saved.");
   const updatedProfile = await updatedProfileResponse.json();
   assert.equal(updatedProfile.profile?.headline, "پژوهشگر آزمون هم‌پژوه");
+  assert.equal(updatedProfile.profile?.skills?.length, 3, "Skills should be saved without case-insensitive duplicates.");
+  assert.ok(updatedProfile.profile.skills.includes("پژوهش داده"));
 
   const publicProject = await createProject(
     ownerCookie,
@@ -162,6 +165,7 @@ async function main() {
   assert.equal(publicProfileResponse.status, 200, "A public profile should be readable without a login.");
   const publicProfile = await publicProfileResponse.json();
   assert.equal(publicProfile.profile?.handle, updatedProfile.profile.handle);
+  assert.ok(publicProfile.profile?.skills?.includes("Drizzle ORM"), "Public portfolios should display researcher skills.");
   assert.equal(publicProfile.user?.email, undefined, "Public profiles must not expose account email addresses.");
   assert.ok(publicProfile.projects?.some((item) => item.id === publicProject.id), "Public profiles should show public projects.");
   assert.ok(!publicProfile.projects?.some((item) => item.id === privateProject.id), "Public profiles must hide private projects.");

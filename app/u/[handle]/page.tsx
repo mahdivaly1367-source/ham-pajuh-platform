@@ -12,6 +12,7 @@ type PublicProfile = {
     bio: string | null;
     location: string | null;
     website: string | null;
+    skills: string[];
   };
   stats: { publicProjects: number; recordedActivities: number };
   projects: Array<{
@@ -97,6 +98,12 @@ export default function PublicProfilePage() {
           <h2>مسیر و علایق حرفه‌ای</h2>
           <p>{data.profile.bio || "این پژوهشگر هنوز توضیحی درباره زمینه‌های فعالیت خود ننوشته است."}</p>
           {data.profile.website && <a className="public-profile-website" href={data.profile.website} target="_blank" rel="noreferrer">وب‌سایت و منابع بیشتر ↗</a>}
+          {data.profile.skills.length > 0 && (
+            <div className="public-profile-skills">
+              <strong>مهارت‌ها و ابزارها</strong>
+              <div>{data.profile.skills.map((skill) => <span key={skill}>{skill}</span>)}</div>
+            </div>
+          )}
         </section>
 
         <section className="public-profile-projects">

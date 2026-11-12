@@ -29,6 +29,7 @@ export default function ProfilePage() {
     website: "",
     isPublic: true
   });
+  const [skillsText, setSkillsText] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -57,6 +58,7 @@ export default function ProfilePage() {
           website: payload.profile.website ?? "",
           isPublic: payload.profile.isPublic
         });
+        setSkillsText((payload.profile.skills ?? []).join("، "));
       })
       .catch((reason: unknown) => {
         if (active) {
@@ -80,7 +82,10 @@ export default function ProfilePage() {
       const response = await fetch("/api/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          ...form,
+          skills: skillsText.split(/[,،;\\n]+/).map((skill) => skill.trim()).filter(Boolean)
+        })
       });
       const payload = await response.json().catch(() => ({}));
       if (response.status === 401) {
@@ -160,6 +165,11 @@ export default function ProfilePage() {
             <label>
               درباره من
               <textarea value={form.bio} onChange={(event) => setForm((current) => ({ ...current, bio: event.target.value }))} rows={5} maxLength={2000} placeholder="زمینه‌های علاقه، تجربه‌ها و مسئله‌هایی که روی آن‌ها کار می‌کنی..." />
+            </label>
+            <label>
+              مهارت‌ها و ابزارها
+              <textarea value={skillsText} onChange={(event) => setSkillsText(event.target.value)} rows={3} maxLength={1400} placeholder="مثلاً Python، طراحی سه‌بعدی، تحلیل داده، پژوهش میدانی" />
+              <span className="field-hint">مهارت‌ها را با ویرگول یا رفتن به خط بعد از هم جدا کن؛ حداکثر ۲۴ مورد.</span>
             </label>
             <label>
               محل فعالیت
