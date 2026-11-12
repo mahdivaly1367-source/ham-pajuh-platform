@@ -143,7 +143,10 @@ export const collaborationRequests = pgTable("collaboration_request", {
   ...timestamps()
 }, (table) => [
   index("collaboration_request_project_status_idx").on(table.projectId, table.status),
-  index("collaboration_request_user_id_idx").on(table.userId)
+  index("collaboration_request_user_id_idx").on(table.userId),
+  uniqueIndex("collaboration_request_pending_unique")
+    .on(table.projectId, table.userId)
+    .where(sql`status = 'pending'`)
 ]);
 
 export const tags = pgTable("tag", {

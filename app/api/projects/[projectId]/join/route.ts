@@ -63,23 +63,35 @@ export async function POST(
       return NextResponse.json({ message: "درخواست همکاری شما قبلاً ثبت شده است.", alreadyRequested: true });
     }
 
-    const [created] = await db
-      .insert(collaborationRequests)
-      .values({
+    const created = await db.transaction(async (tx) => {
+      const [inserted] = await tx
+        .insert(collaborationRequests)
+        .values({
+          projectId,
+          userId: session.user.id,
+          message: ""
+        })
+        .onConflictDoNothing()
+        .returning({ id: collaborationRequests.id });
+
+      if (!inserted) return null;
+
+      await tx.insert(activityEvents).values({
         projectId,
-        userId: session.user.id,
-        message: ""
-      })
-      .returning({ id: collaborationRequests.id });
+        actorId: session.user.id,
+        eventType: "collaboration.requested",
+        metadata: { requestId: inserted.id }
+      });
 
-    if (!created) throw new Error("Collaboration request insert returned no row.");
-
-    await db.insert(activityEvents).values({
-      projectId,
-      actorId: session.user.id,
-      eventType: "collaboration.requested",
-      metadata: { requestId: created.id }
+      return inserted;
     });
+
+    if (!created) {
+      return NextResponse.json({
+        message: "درخواست همکاری شما قبلاً ثبت شده است.",
+        alreadyRequested: true
+      });
+    }
 
     return NextResponse.json({ message: "درخواست همکاری ثبت شد.", requestId: created.id }, { status: 201 });
   } catch (error) {

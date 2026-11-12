@@ -190,27 +190,32 @@ async function main() {
   });
   assert.equal(forbiddenRequests.status, 403, "Non-managers must not read collaboration requests.");
 
-  const joinResponse = await request(
-    `/api/projects/${publicProject.id}/join`,
-    { method: "POST", headers: { cookie: collaboratorCookie } }
-  );
-  const joinBody = await joinResponse.json().catch(() => ({}));
+  const simultaneousJoins = await Promise.all([
+    request(`/api/projects/${publicProject.id}/join`, {
+      method: "POST",
+      headers: { cookie: collaboratorCookie }
+    }),
+    request(`/api/projects/${publicProject.id}/join`, {
+      method: "POST",
+      headers: { cookie: collaboratorCookie }
+    })
+  ]);
+  const simultaneousResults = await Promise.all(simultaneousJoins.map(async (response) => ({
+    status: response.status,
+    body: await response.json().catch(() => ({}))
+  })));
   assert.equal(
-    joinResponse.status,
-    201,
-    `A collaborator request should be created; got ${joinResponse.status}: ${JSON.stringify(joinBody)}`
-  );
-  assert.ok(joinBody.requestId, "The collaboration request should have an identifier.");
-
-  const duplicateResponse = await request(
-    `/api/projects/${publicProject.id}/join`,
-    { method: "POST", headers: { cookie: collaboratorCookie } }
+    simultaneousResults.filter((item) => item.status === 201).length,
+    1,
+    "Exactly one concurrent collaboration request should be created."
   );
   assert.equal(
-    duplicateResponse.status,
-    200,
-    "A duplicate pending request should be handled without creating a second request."
+    simultaneousResults.filter((item) => item.status === 200).length,
+    1,
+    "The competing duplicate request should be acknowledged without a second row."
   );
+  const joinBody = simultaneousResults.find((item) => item.status === 201)?.body;
+  assert.ok(joinBody?.requestId, "The collaboration request should have an identifier.");
 
   const pendingResponse = await request(`/api/projects/${publicProject.id}/requests`, {
     headers: { cookie: ownerCookie }
