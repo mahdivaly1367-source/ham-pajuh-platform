@@ -748,6 +748,29 @@ async function main() {
   );
   assert.equal(discussionPostsAfterLeave.status, 404, "Former members must lose access to discussion replies.");
 
+  const datasetResponse = await request(`/api/projects/${publicProject.id}/datasets`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: ownerCookie },
+    body: JSON.stringify({
+      title: "مجموعه‌داده آزمون",
+      description: "داده‌های نمونه برای آزمون ثبت فراداده پژوهشی.",
+      dataFormat: "CSV",
+      license: "CC-BY-4.0",
+      recordCount: 1250,
+      variables: ["temperature", "pressure"],
+      methodology: "نمونه‌برداری دوره‌ای و پاک‌سازی داده‌ها."
+    })
+  });
+  assert.equal(datasetResponse.status, 201, "Project members should be able to register dataset metadata.");
+  const datasetListResponse = await request(`/api/projects/${publicProject.id}/datasets`, { headers: { cookie: collaboratorCookie } });
+  assert.equal(datasetListResponse.status, 200);
+  const datasetList = await datasetListResponse.json();
+  assert.ok(datasetList.datasets?.some((item) => item.title === "مجموعه‌داده آزمون" && item.recordCount === 1250),
+    "Dataset metadata should be available to project members.");
+  const outsiderCookie = await register("HamPajuh CI Dataset Outsider");
+  const outsiderDatasetResponse = await request(`/api/projects/${publicProject.id}/datasets`, { headers: { cookie: outsiderCookie } });
+  assert.equal(outsiderDatasetResponse.status, 404, "Non-members must not read project dataset metadata.");
+
   const finalActivityResponse = await request(`/api/projects/${publicProject.id}/activity`);
   const finalActivity = await finalActivityResponse.json();
   assert.ok(finalActivity.events?.some((event) => event.eventType === "project.member_left"), "Leaving a project should be recorded in its activity history.");

@@ -80,7 +80,6 @@ export async function GET(
       .select({
         id: activityEvents.id,
         eventType: activityEvents.eventType,
-        metadata: activityEvents.metadata,
         occurredAt: activityEvents.occurredAt,
         actorName: user.name,
         actorHandle: profiles.handle
@@ -100,14 +99,6 @@ export async function GET(
         id: row.id,
         eventType: row.eventType,
         message: eventLabels[row.eventType] ?? "فعالیت جدیدی ثبت شد",
-        changes: row.eventType === "project.updated" ? Object.entries(
-          (row.metadata?.changes && typeof row.metadata.changes === "object" ? row.metadata.changes : {}) as Record<string, { from?: unknown; to?: unknown }>
-        ).map(([field, change]) => ({
-          field,
-          label: ({ title: "عنوان", summary: "خلاصه", visibility: "سطح دسترسی", status: "وضعیت", disciplineSlug: "حوزه علمی" } as Record<string, string>)[field] ?? field,
-          from: typeof change?.from === "string" ? change.from : change?.from === null ? "—" : "",
-          to: typeof change?.to === "string" ? change.to : change?.to === null ? "—" : ""
-        })) : [],
         actorName: row.actorName ?? "سامانه",
         actorHandle: row.actorHandle,
         occurredAt: row.occurredAt.toISOString()

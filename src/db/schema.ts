@@ -257,6 +257,24 @@ export const projectArtifacts = pgTable("project_artifact", {
 ]);
 
 
+export const projectDatasets = pgTable("project_dataset", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  createdBy: text("created_by").notNull().references(() => user.id, { onDelete: "restrict" }),
+  title: varchar("title", { length: 180 }).notNull(),
+  description: text("description").default("").notNull(),
+  dataFormat: varchar("data_format", { length: 60 }).notNull(),
+  license: varchar("license", { length: 80 }).default("").notNull(),
+  doi: varchar("doi", { length: 120 }).default("").notNull(),
+  recordCount: integer("record_count"),
+  variables: jsonb("variables").$type<string[]>().default(sql`'[]'::jsonb`).notNull(),
+  methodology: text("methodology").default("").notNull(),
+  sourceReference: varchar("source_reference", { length: 500 }).default("").notNull(),
+  ...timestamps()
+}, (table) => [
+  index("project_dataset_project_created_idx").on(table.projectId, table.createdAt)
+]);
+
 export const notifications = pgTable("notification", {
   id: uuid("id").defaultRandom().primaryKey(),
   recipientId: text("recipient_id").notNull().references(() => user.id, { onDelete: "cascade" }),

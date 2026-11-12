@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import ProjectTaskBoard from "./task-board";
 import ProjectDiscussionBoard from "./discussion-board";
+import ProjectDatasetRegistry from "./dataset-registry";
 
 type ProjectDetail = {
   project: {
@@ -416,6 +417,16 @@ export default function ProjectDetailPage() {
           <span className="section-kicker">فضای همکاری تیم</span>
           <h2>تابلوی وظایف پروژه</h2>
           <p>وظایف، مسئولیت‌ها و وضعیت پیشرفت پس از عضویت در تیم برای اعضا نمایش داده می‌شود.</p>
+        </section>
+      )}
+
+      {access.isMember ? (
+        <ProjectDatasetRegistry projectId={project.id} />
+      ) : (
+        <section className="project-task-section project-task-locked">
+          <span className="section-kicker">داده و شواهد پژوهش</span>
+          <h2>مجموعه‌داده‌های پروژه</h2>
+          <p>فراداده و مشخصات مجموعه‌داده‌ها فقط برای اعضای تیم قابل مشاهده است.</p>
         </section>
       )}
 

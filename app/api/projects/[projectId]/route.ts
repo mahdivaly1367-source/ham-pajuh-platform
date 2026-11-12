@@ -67,38 +67,6 @@ export async function PATCH(
       disciplineId = discipline.id;
     }
 
-    const [before] = await db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
-    if (!before) {
-      return NextResponse.json({ error: "پروژه پیدا نشد." }, { status: 404 });
-    }
-
-    const beforeDiscipline = before.disciplineId
-      ? (await db.select({ slug: disciplines.slug }).from(disciplines).where(eq(disciplines.id, before.disciplineId)).limit(1))[0]?.slug ?? null
-      : null;
-    const afterDiscipline = disciplineId !== undefined
-      ? (await db.select({ slug: disciplines.slug }).from(disciplines).where(eq(disciplines.id, disciplineId)).limit(1))[0]?.slug ?? null
-      : beforeDiscipline;
-
-    const nextValues = {
-      title: parsed.data.title ?? before.title,
-      summary: parsed.data.summary ?? before.summary,
-      visibility: parsed.data.visibility ?? before.visibility,
-      status: parsed.data.status ?? before.status,
-      disciplineSlug: afterDiscipline
-    };
-    const previousValues = {
-      title: before.title,
-      summary: before.summary,
-      visibility: before.visibility,
-      status: before.status,
-      disciplineSlug: beforeDiscipline
-    };
-    const changes = Object.fromEntries(
-      (Object.keys(nextValues) as Array<keyof typeof nextValues>)
-        .filter((key) => nextValues[key] !== previousValues[key])
-        .map((key) => [key, { from: previousValues[key], to: nextValues[key] }])
-    );
-
     const updateValues = {
       ...(parsed.data.title !== undefined ? { title: parsed.data.title } : {}),
       ...(parsed.data.summary !== undefined ? { summary: parsed.data.summary } : {}),
@@ -110,21 +78,21 @@ export async function PATCH(
     };
 
     const updated = await db.transaction(async (tx) => {
-      const [project] = await tx.update(projects).set(updateValues)
-        .where(eq(projects.id, projectId)).returning();
+      const [project] = await tx
+        .update(projects)
+        .set(updateValues)
+        .where(eq(projects.id, projectId))
+        .returning();
+
       if (!project) return null;
 
-      if (Object.keys(changes).length || parsed.data.description !== undefined) {
-        await tx.insert(activityEvents).values({
-          projectId,
-          actorId: session.user.id,
-          eventType: "project.updated",
-          metadata: {
-            changedFields: [...Object.keys(changes), ...(parsed.data.description !== undefined ? ["description"] : [])],
-            changes
-          }
-        });
-      }
+      await tx.insert(activityEvents).values({
+        projectId,
+        actorId: session.user.id,
+        eventType: "project.updated",
+        metadata: { changedFields: Object.keys(parsed.data) }
+      });
+
       return project;
     });
 
