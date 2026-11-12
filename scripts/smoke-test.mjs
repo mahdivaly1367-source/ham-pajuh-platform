@@ -762,7 +762,7 @@ async function main() {
     })
   });
   assert.equal(datasetResponse.status, 201, "Project members should be able to register dataset metadata.");
-  const datasetListResponse = await request(`/api/projects/${publicProject.id}/datasets`, { headers: { cookie: collaboratorCookie } });
+  const datasetListResponse = await request(`/api/projects/${publicProject.id}/datasets`, { headers: { cookie: ownerCookie } });
   assert.equal(datasetListResponse.status, 200);
   const datasetList = await datasetListResponse.json();
   assert.ok(datasetList.datasets?.some((item) => item.title === "مجموعه‌داده آزمون" && item.recordCount === 1250),
