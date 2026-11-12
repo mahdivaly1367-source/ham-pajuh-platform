@@ -1,8 +1,8 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getAuth } from "@/lib/auth";
 import { getDb } from "@/src/db";
-import { disciplines, projectMembers, projects } from "@/src/db/schema";
+import { collaborationRequests, disciplines, projectMembers, projects } from "@/src/db/schema";
 
 export const runtime = "nodejs";
 
@@ -36,12 +36,32 @@ export async function GET(request: Request) {
       .orderBy(desc(projects.updatedAt))
       .limit(100);
 
+    const requests = await getDb()
+      .select({
+        id: collaborationRequests.id,
+        projectId: projects.id,
+        projectSlug: projects.slug,
+        projectTitle: projects.title,
+        projectVisibility: projects.visibility,
+        message: collaborationRequests.message,
+        createdAt: collaborationRequests.createdAt
+      })
+      .from(collaborationRequests)
+      .innerJoin(projects, eq(collaborationRequests.projectId, projects.id))
+      .where(and(
+        eq(collaborationRequests.userId, session.user.id),
+        eq(collaborationRequests.status, "pending")
+      ))
+      .orderBy(desc(collaborationRequests.createdAt))
+      .limit(50);
+
     return NextResponse.json({
       projects: rows.map((row) => ({
         ...row,
         updatedAt: row.updatedAt.toISOString(),
         discipline: row.discipline ?? "میان‌رشته‌ای"
       })),
+      requests: requests.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() })),
       total: rows.length
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {

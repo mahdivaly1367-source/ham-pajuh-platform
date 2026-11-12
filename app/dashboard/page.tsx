@@ -16,7 +16,17 @@ type Project = {
   role: string;
 };
 
-type DashboardData = { projects: Project[]; total: number };
+type PendingRequest = {
+  id: string;
+  projectId: string;
+  projectSlug: string;
+  projectTitle: string;
+  projectVisibility: "public" | "private" | "unlisted";
+  message: string;
+  createdAt: string;
+};
+
+type DashboardData = { projects: Project[]; requests: PendingRequest[]; total: number };
 
 const statusLabels: Record<string, string> = {
   idea: "ایده اولیه",
@@ -38,6 +48,8 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [withdrawingId, setWithdrawingId] = useState("");
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -58,6 +70,32 @@ export default function DashboardPage() {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [router]);
+
+  async function withdrawRequest(item: PendingRequest) {
+    if (!window.confirm("درخواست همکاری برای «" + item.projectTitle + "» لغو شود؟")) return;
+
+    setWithdrawingId(item.id);
+    setNotice("");
+    try {
+      const response = await fetch("/api/projects/" + encodeURIComponent(item.projectId) + "/join", {
+        method: "DELETE"
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setNotice(payload.error ?? "لغو درخواست انجام نشد.");
+        return;
+      }
+      setData((current) => current ? {
+        ...current,
+        requests: current.requests.filter((request) => request.id !== item.id)
+      } : current);
+      setNotice(payload.message ?? "درخواست همکاری لغو شد.");
+    } catch {
+      setNotice("ارتباط با سرور برقرار نشد.");
+    } finally {
+      setWithdrawingId("");
+    }
+  }
 
   const stats = useMemo(() => {
     const projects = data?.projects ?? [];
@@ -102,6 +140,33 @@ export default function DashboardPage() {
         <div><strong>{stats.owned.toLocaleString("fa-IR")}</strong><span>پروژه بنیان‌گذاری‌شده</span></div>
         <div><strong>{stats.private.toLocaleString("fa-IR")}</strong><span>پروژه خصوصی</span></div>
         <div><strong>{stats.active.toLocaleString("fa-IR")}</strong><span>در حال توسعه</span></div>
+      </section>
+
+      {notice && <div className="profile-message" role="status" style={{ maxWidth: 1120, margin: "0 auto 15px" }}>{notice}</div>}
+
+      <section className="dashboard-requests">
+        <div className="dashboard-section-heading">
+          <div><div className="section-kicker">مشارکت و همکاری</div><h2>درخواست‌های ارسال‌شده</h2></div>
+          <span>{(data.requests ?? []).length.toLocaleString("fa-IR")} درخواست معلق</span>
+        </div>
+        {(data.requests ?? []).length ? (
+          <div className="dashboard-request-list">
+            {data.requests.map((item) => (
+              <article className="dashboard-request-card" key={item.id}>
+                <div className="dashboard-request-copy">
+                  <Link href={"/projects/" + encodeURIComponent(item.projectSlug)}>{item.projectTitle}</Link>
+                  <p>{item.message || "بدون پیام همراه"}</p>
+                  <small>ارسال‌شده در {new Date(item.createdAt).toLocaleDateString("fa-IR")}</small>
+                </div>
+                <button type="button" disabled={withdrawingId === item.id} onClick={() => withdrawRequest(item)}>
+                  {withdrawingId === item.id ? "در حال لغو..." : "لغو درخواست"}
+                </button>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="dashboard-request-empty">در حال حاضر درخواست همکاری معلقی ارسال نکرده‌ای.</div>
+        )}
       </section>
 
       <section className="dashboard-projects">

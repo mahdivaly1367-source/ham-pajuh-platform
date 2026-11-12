@@ -243,3 +243,16 @@
 .collaboration-request-form label>span{font-size:8px;color:#89958f;font-weight:400}
 .collaboration-request-form>div{display:flex;justify-content:flex-end;gap:7px}
 .collaboration-request-form .primary-button,.collaboration-request-form .secondary-button{min-height:35px;font-size:9px;padding:0 12px}
+
+/* Outgoing collaboration requests in personal dashboard */
+.dashboard-requests{max-width:1120px;margin:0 auto 25px}
+.dashboard-request-list{display:flex;flex-direction:column;gap:9px}
+.dashboard-request-card{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:14px 16px;background:#fff;border:1px solid #e7eeea;border-radius:11px}
+.dashboard-request-copy{min-width:0;display:flex;flex-direction:column;gap:5px}
+.dashboard-request-copy>a{font-size:11px;color:#355c50;font-weight:900}
+.dashboard-request-copy>p{font-size:9px;color:#82908a;line-height:1.8;margin:0;overflow-wrap:anywhere}
+.dashboard-request-copy>small{font-size:8px;color:#9aa59f}
+.dashboard-request-card>button{flex-shrink:0;border:1px solid #f0ddd9;border-radius:7px;background:#fff5f3;color:#a35d52;padding:8px 11px;font-family:inherit;font-size:8px;font-weight:800}
+.dashboard-request-card>button:disabled{opacity:.5;cursor:wait}
+.dashboard-request-empty{padding:17px;background:#fff;border:1px dashed #dce7e1;border-radius:10px;color:#8a9690;font-size:9px}
+@media(max-width:600px){.dashboard-request-card{align-items:flex-start;flex-direction:column}.dashboard-request-card>button{align-self:flex-start}}

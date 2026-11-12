@@ -237,6 +237,32 @@ async function main() {
   });
   assert.equal(forbiddenRequests.status, 403, "Non-managers must not read collaboration requests.");
 
+  const firstApplication = await request(`/api/projects/${publicProject.id}/join`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: collaboratorCookie },
+    body: JSON.stringify({ message: "درخواست نخست برای آزمون لغو عضویت؛ تجربه TypeScript دارم." })
+  });
+  assert.equal(firstApplication.status, 201, "Applicants should be able to submit a collaboration request.");
+
+  const outgoingRequests = await request("/api/my/projects", {
+    headers: { cookie: collaboratorCookie }
+  });
+  assert.equal(outgoingRequests.status, 200);
+  const outgoingData = await outgoingRequests.json();
+  assert.ok(outgoingData.requests?.some((item) => item.projectId === publicProject.id), "Applicants should see pending requests in their dashboard.");
+
+  const withdrawal = await request(`/api/projects/${publicProject.id}/join`, {
+    method: "DELETE",
+    headers: { cookie: collaboratorCookie }
+  });
+  assert.equal(withdrawal.status, 200, "Applicants should be able to withdraw their pending request.");
+
+  const afterWithdrawal = await request(`/api/projects/${publicProject.id}/requests`, {
+    headers: { cookie: ownerCookie }
+  });
+  const afterWithdrawalBody = await afterWithdrawal.json();
+  assert.equal(afterWithdrawalBody.requests?.length, 0, "Withdrawn requests should disappear from managers' pending queues.");
+
   const simultaneousJoins = await Promise.all([
     request(`/api/projects/${publicProject.id}/join`, {
       method: "POST",
