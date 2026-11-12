@@ -142,10 +142,18 @@ async function main() {
   assert.ok(publicProfile.projects?.some((item) => item.id === publicProject.id), "Public profiles should show public projects.");
   assert.ok(!publicProfile.projects?.some((item) => item.id === privateProject.id), "Public profiles must hide private projects.");
 
+  const profileVisibilityPayload = {
+    handle: updatedProfile.profile.handle,
+    headline: updatedProfile.profile.headline ?? "",
+    bio: updatedProfile.profile.bio ?? "",
+    location: updatedProfile.profile.location ?? "",
+    website: updatedProfile.profile.website ?? "",
+    isPublic: false
+  };
   const hideProfileResponse = await request("/api/profile", {
     method: "PUT",
     headers: { "content-type": "application/json", cookie: ownerCookie },
-    body: JSON.stringify({ ...updatedProfile.profile, isPublic: false })
+    body: JSON.stringify(profileVisibilityPayload)
   });
   assert.equal(hideProfileResponse.status, 200, "Profile privacy can be disabled.");
   const hiddenProfileResponse = await request(publicProfilePath);
@@ -154,7 +162,7 @@ async function main() {
   const showProfileResponse = await request("/api/profile", {
     method: "PUT",
     headers: { "content-type": "application/json", cookie: ownerCookie },
-    body: JSON.stringify({ ...updatedProfile.profile, isPublic: true })
+    body: JSON.stringify({ ...profileVisibilityPayload, isPublic: true })
   });
   assert.equal(showProfileResponse.status, 200, "Profile privacy can be restored.");
 
