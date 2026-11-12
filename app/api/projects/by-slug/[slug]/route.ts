@@ -94,6 +94,7 @@ export async function GET(
         ownerHandle: project.ownerHandle
       },
       members: members.map((member) => ({
+        memberId: currentRole === "owner" ? member.userId : null,
         name: member.name,
         handle: member.handle,
         role: member.role,

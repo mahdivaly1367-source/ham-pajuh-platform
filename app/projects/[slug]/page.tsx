@@ -20,6 +20,7 @@ type ProjectDetail = {
     ownerHandle: string | null;
   };
   members: Array<{
+    memberId: string | null;
     name: string;
     handle: string | null;
     role: string;
@@ -67,6 +68,8 @@ export default function ProjectDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
   const [editForm, setEditForm] = useState({ title: "", summary: "", description: "", visibility: "private", status: "idea" });
+  const [memberRoles, setMemberRoles] = useState<Record<string, string>>({});
+  const [updatingMember, setUpdatingMember] = useState("");
 
   const loadProject = useCallback(async () => {
     const response = await fetch("/api/projects/by-slug/" + encodeURIComponent(slug), { cache: "no-store" });
@@ -90,6 +93,10 @@ export default function ProjectDetailPage() {
             visibility: payload.project.visibility,
             status: payload.project.status
           });
+          setMemberRoles(Object.fromEntries(
+            payload.members.filter((member: ProjectDetail["members"][number]) => member.memberId)
+              .map((member: ProjectDetail["members"][number]) => [member.memberId as string, member.role])
+          ));
         }
       })
       .catch((reason: unknown) => {
@@ -169,6 +176,35 @@ export default function ProjectDetailPage() {
       setNotice("ارتباط با سرور برقرار نشد.");
     } finally {
       setReviewingId("");
+    }
+  }
+
+  async function saveMemberRole(memberId: string) {
+    if (!data) return;
+    const role = memberRoles[memberId];
+    if (!role) return;
+    setUpdatingMember(memberId);
+    setNotice("");
+    try {
+      const response = await fetch(
+        "/api/projects/" + encodeURIComponent(data.project.id) + "/members/" + encodeURIComponent(memberId),
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role })
+        }
+      );
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setNotice(payload.error ?? "تغییر نقش عضو انجام نشد.");
+        return;
+      }
+      setNotice(payload.message ?? "نقش عضو به‌روزرسانی شد.");
+      setRefreshKey((value) => value + 1);
+    } catch {
+      setNotice("ارتباط با سرور برقرار نشد.");
+    } finally {
+      setUpdatingMember("");
     }
   }
 
@@ -293,6 +329,18 @@ export default function ProjectDetailPage() {
                   <small>{new Date(member.joinedAt).toLocaleDateString("fa-IR")}</small>
                 </span>
                 <span className="project-member-role">{roleLabels[member.role] ?? member.role}</span>
+                {access.canEdit && member.memberId && member.role !== "owner" && (
+                  <div className="project-member-management">
+                    <select aria-label={"نقش " + member.name} value={memberRoles[member.memberId] ?? member.role} onChange={(event) => setMemberRoles((current) => ({ ...current, [member.memberId as string]: event.target.value }))}>
+                      <option value="maintainer">مدیر پروژه</option>
+                      <option value="contributor">مشارکت‌کننده</option>
+                      <option value="viewer">مشاهده‌گر</option>
+                    </select>
+                    <button type="button" disabled={updatingMember === member.memberId || memberRoles[member.memberId] === member.role} onClick={() => saveMemberRole(member.memberId as string)}>
+                      {updatingMember === member.memberId ? "..." : "ذخیره"}
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

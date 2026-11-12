@@ -276,6 +276,46 @@ async function main() {
   const joinedDetail = await joinedDetailResponse.json();
   assert.ok(joinedDetail.members?.some((member) => member.role === "contributor"), "Accepted collaborators should become project members.");
 
+  const collaboratorProfileResponse = await request("/api/profile", {
+    headers: { cookie: collaboratorCookie }
+  });
+  assert.equal(collaboratorProfileResponse.status, 200);
+  const collaboratorProfile = await collaboratorProfileResponse.json();
+  const collaboratorId = collaboratorProfile.user.id;
+
+  const unauthorizedRoleChange = await request(
+    `/api/projects/${publicProject.id}/members/${collaboratorId}`,
+    {
+      method: "PATCH",
+      headers: { "content-type": "application/json", cookie: collaboratorCookie },
+      body: JSON.stringify({ role: "viewer" })
+    }
+  );
+  assert.equal(unauthorizedRoleChange.status, 403, "Only owners may change member roles.");
+
+  const promoteMember = await request(
+    `/api/projects/${publicProject.id}/members/${collaboratorId}`,
+    {
+      method: "PATCH",
+      headers: { "content-type": "application/json", cookie: ownerCookie },
+      body: JSON.stringify({ role: "maintainer" })
+    }
+  );
+  assert.equal(promoteMember.status, 200, "Project owners should be able to promote collaborators.");
+  const promotedDetailResponse = await request("/api/projects/by-slug/" + encodeURIComponent(publicProject.slug));
+  const promotedDetail = await promotedDetailResponse.json();
+  assert.ok(promotedDetail.members?.some((member) => member.role === "maintainer"), "Promoted members should receive the maintainer role.");
+
+  const restoreContributor = await request(
+    `/api/projects/${publicProject.id}/members/${collaboratorId}`,
+    {
+      method: "PATCH",
+      headers: { "content-type": "application/json", cookie: ownerCookie },
+      body: JSON.stringify({ role: "contributor" })
+    }
+  );
+  assert.equal(restoreContributor.status, 200, "Project owners should be able to change a member role back.");
+
   const secondJoinResponse = await request(
     `/api/projects/${publicProject.id}/join`,
     { method: "POST", headers: { cookie: collaboratorCookie } }
@@ -292,6 +332,7 @@ async function main() {
   console.log("PASS: project owners can view private projects");
   console.log("PASS: only project owners can edit project metadata");
   console.log("PASS: personal project dashboard shows only projects the user belongs to");
+  console.log("PASS: only owners can promote or change project member roles");
   console.log("PASS: collaboration requests are visible only to project managers");
   console.log("PASS: owners can accept requests and add contributors to the team");
 }
