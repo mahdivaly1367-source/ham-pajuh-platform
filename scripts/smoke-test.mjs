@@ -86,6 +86,9 @@ async function main() {
   });
   assert.equal(anonymousCreate.status, 401, "Anonymous project creation must be rejected.");
 
+  const anonymousDashboard = await request("/api/my/projects");
+  assert.equal(anonymousDashboard.status, 401, "Anonymous users must not access the personal project dashboard.");
+
   const ownerCookie = await register("HamPajuh CI Owner");
   const profileResponse = await request("/api/profile", {
     headers: { cookie: ownerCookie }
@@ -120,6 +123,14 @@ async function main() {
     "private",
     "Private CI Project " + randomUUID().slice(0, 8)
   );
+
+  const ownerDashboardResponse = await request("/api/my/projects", {
+    headers: { cookie: ownerCookie }
+  });
+  assert.equal(ownerDashboardResponse.status, 200, "Authenticated users should access their project dashboard.");
+  const ownerDashboard = await ownerDashboardResponse.json();
+  assert.ok(ownerDashboard.projects?.some((item) => item.id === publicProject.id), "The dashboard should include owned public projects.");
+  assert.ok(ownerDashboard.projects?.some((item) => item.id === privateProject.id), "The dashboard should include owned private projects.");
 
   const listing = await request("/api/projects");
   assert.equal(listing.status, 200, "Public project listing should work.");
@@ -233,6 +244,14 @@ async function main() {
   );
   assert.equal(reviewResponse.status, 200, "The owner should be able to accept a collaboration request.");
 
+  const collaboratorDashboard = await request("/api/my/projects", {
+    headers: { cookie: collaboratorCookie }
+  });
+  assert.equal(collaboratorDashboard.status, 200, "Accepted contributors should access their project dashboard.");
+  const collaboratorProjects = await collaboratorDashboard.json();
+  assert.ok(collaboratorProjects.projects?.some((item) => item.id === publicProject.id), "The collaborator dashboard should include the accepted project.");
+  assert.ok(!collaboratorProjects.projects?.some((item) => item.id === privateProject.id), "Other users' private projects must never appear in a dashboard.");
+
   const joinedDetailResponse = await request("/api/projects/by-slug/" + encodeURIComponent(publicProject.slug));
   const joinedDetail = await joinedDetailResponse.json();
   assert.ok(joinedDetail.members?.some((member) => member.role === "contributor"), "Accepted collaborators should become project members.");
@@ -251,6 +270,7 @@ async function main() {
   console.log("PASS: authenticated users can create projects");
   console.log("PASS: private projects are excluded from public discovery and hidden project detail");
   console.log("PASS: project owners can view private projects");
+  console.log("PASS: personal project dashboard shows only projects the user belongs to");
   console.log("PASS: collaboration requests are visible only to project managers");
   console.log("PASS: owners can accept requests and add contributors to the team");
 }

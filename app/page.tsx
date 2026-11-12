@@ -152,12 +152,14 @@ export default function HomePage() {
         setProjects((current) => [created, ...current]);
         setActiveDiscipline("همه حوزه‌ها");
         setQuery("");
+        setShowCreate(false);
+        formElement.reset();
+        notify("پروژه ساخته و برای نمایش عمومی منتشر شد.");
+      } else {
+        setShowCreate(false);
+        formElement.reset();
+        window.location.assign("/projects/" + encodeURIComponent(created.slug));
       }
-      setShowCreate(false);
-      formElement.reset();
-      notify(visibility === "public"
-        ? "پروژه ساخته و برای نمایش عمومی منتشر شد."
-        : "پروژه خصوصی ساخته شد و در فهرست عمومی نمایش داده نمی‌شود.");
     } catch {
       notify("ارتباط با سرور برقرار نشد. اتصال شبکه و وضعیت برنامه را بررسی کن.");
     }
@@ -207,6 +209,7 @@ export default function HomePage() {
         <div className="topbar-actions">
           <button className="language-button" type="button"><Icon name="globe" size={16} /> FA</button>
           <Link className="login-button" href="/auth">ورود / ثبت‌نام</Link>
+          <Link className="login-button" href="/dashboard">پروژه‌های من</Link>
           <Link className="login-button" href="/profile">پروفایل من</Link>
           <button className="header-cta" type="button" onClick={() => setShowCreate(true)}><Icon name="plus" size={17} /> پروژه جدید</button>
           <button className="mobile-menu-button" type="button" onClick={() => setMenuOpen((value) => !value)} aria-label="باز کردن منو"><Icon name={menuOpen ? "close" : "menu"} size={21} /></button>

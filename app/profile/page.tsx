@@ -127,6 +127,7 @@ export default function ProfilePage() {
           <p dir="ltr">{data.user.email}</p>
           <span className="profile-handle">@{form.handle || data.profile.handle}</span>
           {data.profile.isPublic && <Link className="profile-public-link" href={"/u/" + encodeURIComponent(data.profile.handle)}>مشاهده پروفایل عمومی ←</Link>}
+          <Link className="profile-public-link" href="/dashboard">رفتن به فضای پروژه‌های من ←</Link>
           <div className="profile-tip">
             پروفایل عمومی پایه رزومه علمی و فنی تو است. در مرحله‌های بعد پروژه‌ها، مشارکت‌ها، مهارت‌ها و آثار قابل استناد به آن متصل می‌شوند.
           </div>
