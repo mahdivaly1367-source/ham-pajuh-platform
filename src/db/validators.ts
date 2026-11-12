@@ -25,7 +25,7 @@ export const updateProjectInput = z.object({
   summary: z.string().trim().min(20).max(280).optional(),
   description: z.string().trim().max(12000).optional(),
   visibility: z.enum(["public", "private", "unlisted"]).optional(),
-  status: z.enum(["idea", "active", "paused", "completed", "archived"]).optional(),
+  status: z.enum(["idea", "active", "paused", "completed"]).optional(),
   disciplineSlug: z.string().trim().min(2).max(80).regex(/^[a-z0-9-]+$/).optional()
 }).refine((value) => Object.keys(value).length > 0, {
   message: "دست‌کم یک فیلد برای تغییر انتخاب کنید."
