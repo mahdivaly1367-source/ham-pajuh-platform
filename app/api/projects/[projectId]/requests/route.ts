@@ -50,7 +50,7 @@ export async function GET(
       })
       .from(collaborationRequests)
       .innerJoin(user, eq(collaborationRequests.userId, user.id))
-      .leftJoin(profiles, eq(collaborationRequests.userId, profiles.userId))
+      .leftJoin(profiles, and(eq(collaborationRequests.userId, profiles.userId), eq(profiles.isPublic, true)))
       .where(and(
         eq(collaborationRequests.projectId, projectId),
         eq(collaborationRequests.status, "pending")
