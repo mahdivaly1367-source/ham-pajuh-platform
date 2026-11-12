@@ -148,6 +148,10 @@ export default function HomePage() {
       }
 
       const created = payload.project as Project;
+      if (typeof created.slug !== "string" || !created.slug) {
+        notify("پروژه ساخته شد، اما شناسه نشانی آن از سرور دریافت نشد.");
+        return;
+      }
       if (visibility === "public") {
         setProjects((current) => [created, ...current]);
         setActiveDiscipline("همه حوزه‌ها");
