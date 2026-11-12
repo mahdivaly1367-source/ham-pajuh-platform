@@ -272,7 +272,7 @@ async function main() {
     request(`/api/projects/${publicProject.id}/join`, {
       method: "POST",
       headers: { "content-type": "application/json", cookie: collaboratorCookie },
-      body: JSON.stringify({ message: "درخواست تکراری هم‌زمان" })
+      body: JSON.stringify({ message: "من تجربه کار با TypeScript و تحلیل داده دارم و هفته‌ای چند ساعت می‌توانم مشارکت کنم." })
     })
   ]);
   const simultaneousResults = await Promise.all(simultaneousJoins.map(async (response) => ({
