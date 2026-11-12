@@ -762,6 +762,8 @@ async function main() {
     })
   });
   assert.equal(datasetResponse.status, 201, "Project members should be able to register dataset metadata.");
+  const datasetPayload = await datasetResponse.json();
+  assert.ok(datasetPayload.dataset?.id, "Dataset registration should return the created dataset ID.");
   const datasetListResponse = await request(`/api/projects/${publicProject.id}/datasets`, { headers: { cookie: ownerCookie } });
   assert.equal(datasetListResponse.status, 200);
   const datasetList = await datasetListResponse.json();
@@ -770,6 +772,58 @@ async function main() {
   const outsiderCookie = await register("HamPajuh CI Dataset Outsider");
   const outsiderDatasetResponse = await request(`/api/projects/${publicProject.id}/datasets`, { headers: { cookie: outsiderCookie } });
   assert.equal(outsiderDatasetResponse.status, 404, "Non-members must not read project dataset metadata.");
+
+  const experimentResponse = await request(`/api/projects/${publicProject.id}/experiments`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: ownerCookie },
+    body: JSON.stringify({
+      title: "آزمایش دمای نمونه",
+      datasetId: datasetPayload.dataset.id,
+      status: "completed",
+      objective: "بررسی تغییر دما در یک بازه زمانی.",
+      hypothesis: "دمای نمونه با گذشت زمان کاهش می‌یابد.",
+      protocol: "اندازه‌گیری دوره‌ای با حسگر کالیبره‌شده.",
+      materials: ["حسگر دما", "نمونه آزمایش"],
+      variables: ["temperature", "elapsed_time"],
+      controls: "دمای محیط و فاصله زمانی اندازه‌گیری ثابت نگه داشته شد.",
+      procedure: "حسگر در بازه‌های زمانی منظم قرائت شد.",
+      observations: "دما در هر قرائت کاهش یافت.",
+      conclusion: "مشاهده با فرضیه سازگار بود."
+    })
+  });
+  assert.equal(experimentResponse.status, 201, "Project owners should be able to register a structured experiment.");
+  const experimentPayload = await experimentResponse.json();
+  assert.equal(experimentPayload.experiment?.datasetId, datasetPayload.dataset.id);
+  assert.equal(experimentPayload.experiment?.status, "completed");
+
+  const experimentListResponse = await request(`/api/projects/${publicProject.id}/experiments`, {
+    headers: { cookie: ownerCookie }
+  });
+  assert.equal(experimentListResponse.status, 200);
+  const experimentList = await experimentListResponse.json();
+  assert.ok(experimentList.experiments?.some((entry) =>
+    entry.experiment?.id === experimentPayload.experiment.id &&
+    entry.datasetTitle === "مجموعه‌داده آزمون"
+  ), "Experiment records should be visible to project members with their linked dataset.");
+
+  const invalidExperimentResponse = await request(`/api/projects/${publicProject.id}/experiments`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: ownerCookie },
+    body: JSON.stringify({ title: "وضعیت نامعتبر", status: "scientifically_proven" })
+  });
+  assert.equal(invalidExperimentResponse.status, 400, "Experiment status values must be validated.");
+
+  const outsiderExperimentResponse = await request(`/api/projects/${publicProject.id}/experiments`, {
+    headers: { cookie: outsiderCookie }
+  });
+  assert.equal(outsiderExperimentResponse.status, 404, "Non-members must not read project experiments.");
+
+  const outsiderExperimentWrite = await request(`/api/projects/${publicProject.id}/experiments`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: outsiderCookie },
+    body: JSON.stringify({ title: "ثبت غیرمجاز آزمایش" })
+  });
+  assert.equal(outsiderExperimentWrite.status, 404, "Non-members must not register project experiments.");
 
   const finalActivityResponse = await request(`/api/projects/${publicProject.id}/activity`);
   const finalActivity = await finalActivityResponse.json();
@@ -780,6 +834,7 @@ async function main() {
   assert.ok(finalActivity.events?.some((event) => event.eventType === "project.discussion_reply_created"), "Discussion replies should be recorded in project activity.");
   assert.ok(finalActivity.events?.some((event) => event.eventType === "project.discussion_resolved"), "Discussion resolution should be recorded in project activity.");
   assert.ok(finalActivity.events?.some((event) => event.eventType === "project.discussion_reopened"), "Discussion reopening should be recorded in project activity.");
+  assert.ok(finalActivity.events?.some((event) => event.eventType === "project.experiment_registered"), "Experiment registration should be recorded in project activity.");
 
 
   console.log("PASS: anonymous writes are rejected");
@@ -799,6 +854,7 @@ async function main() {
   console.log("PASS: owners can accept requests and add contributors to the team");
   console.log("PASS: members can create and track tasks with role-based permissions");
   console.log("PASS: member-only research discussions, task-linked reviews, replies and resolve/reopen permissions");
+  console.log("PASS: member-only structured research experiments, dataset links and activity history");
 }
 
 main().catch((error) => {
