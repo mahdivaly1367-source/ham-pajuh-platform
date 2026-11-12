@@ -228,3 +228,9 @@
 .project-activity-copy small{font-size:8px;color:#8c9991}
 .project-activity-row time{font-size:8px;color:#9aa59f;white-space:nowrap}
 @media(max-width:520px){.project-activity-row{align-items:flex-start;flex-wrap:wrap}.project-activity-row time{margin-right:20px}}
+
+/* Researcher skill tags */
+.public-profile-skills{margin-top:17px}
+.public-profile-skills>strong{display:block;color:#52685f;font-size:9px;margin-bottom:8px}
+.public-profile-skills>div{display:flex;flex-wrap:wrap;gap:6px}
+.public-profile-skills span{display:inline-flex;padding:5px 8px;border-radius:6px;background:#eff6f1;border:1px solid #e2eee6;color:#4c7964;font-size:8px;font-weight:700}
