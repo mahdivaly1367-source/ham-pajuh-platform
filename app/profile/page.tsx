@@ -84,7 +84,7 @@ export default function ProfilePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          skills: skillsText.split(/[,،;\\n]+/).map((skill) => skill.trim()).filter(Boolean)
+          skills: skillsText.split(/[,،;]+|\r?\n/).map((skill) => skill.trim()).filter(Boolean)
         })
       });
       const payload = await response.json().catch(() => ({}));
