@@ -796,6 +796,33 @@ async function main() {
   assert.equal(experimentPayload.experiment?.datasetId, datasetPayload.dataset.id);
   assert.equal(experimentPayload.experiment?.status, "completed");
 
+  const experimentEditResponse = await request(`/api/projects/${publicProject.id}/experiments/${experimentPayload.experiment.id}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: ownerCookie },
+    body: JSON.stringify({ title: "آزمایش دمای نمونه ـ ویرایش‌شده", observations: "داده‌ها پس از بازبینی دوباره ثبت شدند." })
+  });
+  assert.equal(experimentEditResponse.status, 200, "Project owners should be able to edit an existing experiment.");
+  const experimentEditPayload = await experimentEditResponse.json();
+  assert.equal(experimentEditPayload.experiment?.title, "آزمایش دمای نمونه ـ ویرایش‌شده");
+  assert.equal(experimentEditPayload.experiment?.observations, "داده‌ها پس از بازبینی دوباره ثبت شدند.");
+
+  const outsiderExperimentEdit = await request(`/api/projects/${publicProject.id}/experiments/${experimentPayload.experiment.id}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: outsiderCookie },
+    body: JSON.stringify({ title: "ویرایش غیرمجاز" })
+  });
+  assert.equal(outsiderExperimentEdit.status, 404, "Non-members must not edit project experiments.");
+
+  const experimentAfterEditResponse = await request(`/api/projects/${publicProject.id}/experiments`, {
+    headers: { cookie: ownerCookie }
+  });
+  const experimentAfterEdit = await experimentAfterEditResponse.json();
+  assert.ok(experimentAfterEdit.experiments?.some((entry) =>
+    entry.experiment?.id === experimentPayload.experiment.id &&
+    entry.experiment?.title === "آزمایش دمای نمونه ـ ویرایش‌شده"
+  ), "Experiment edits should persist and be returned by the collection endpoint.");
+
+
   const experimentListResponse = await request(`/api/projects/${publicProject.id}/experiments`, {
     headers: { cookie: ownerCookie }
   });
@@ -835,6 +862,7 @@ async function main() {
   assert.ok(finalActivity.events?.some((event) => event.eventType === "project.discussion_resolved"), "Discussion resolution should be recorded in project activity.");
   assert.ok(finalActivity.events?.some((event) => event.eventType === "project.discussion_reopened"), "Discussion reopening should be recorded in project activity.");
   assert.ok(finalActivity.events?.some((event) => event.eventType === "project.experiment_registered"), "Experiment registration should be recorded in project activity.");
+  assert.ok(finalActivity.events?.some((event) => event.eventType === "project.experiment_updated"), "Experiment edits should be recorded in project activity.");
 
 
   console.log("PASS: anonymous writes are rejected");
@@ -854,7 +882,7 @@ async function main() {
   console.log("PASS: owners can accept requests and add contributors to the team");
   console.log("PASS: members can create and track tasks with role-based permissions");
   console.log("PASS: member-only research discussions, task-linked reviews, replies and resolve/reopen permissions");
-  console.log("PASS: member-only structured research experiments, dataset links and activity history");
+  console.log("PASS: member-only structured research experiments, dataset links, edits and activity history");
 }
 
 main().catch((error) => {
