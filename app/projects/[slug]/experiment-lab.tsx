@@ -18,6 +18,7 @@ type Experiment = {
   conclusion: string;
   status: "planned" | "in_progress" | "completed" | "abandoned";
   createdAt: string;
+  updatedAt: string;
 };
 type ExperimentEntry = { experiment: Experiment; datasetTitle: string | null };
 type ExperimentForm = {
@@ -46,6 +47,7 @@ export default function ProjectExperimentLab({ projectId }: { projectId: string 
   const [datasets, setDatasets] = useState<DatasetOption[]>([]);
   const [form, setForm] = useState<ExperimentForm>(emptyForm);
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -78,8 +80,9 @@ export default function ProjectExperimentLab({ projectId }: { projectId: string 
     setSaving(true);
     setError("");
     try {
-      const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/experiments`, {
-        method: "POST",
+      const endpoint = `/api/projects/${encodeURIComponent(projectId)}/experiments`;
+      const response = await fetch(editingId ? `${endpoint}/${encodeURIComponent(editingId)}` : endpoint, {
+        method: editingId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
@@ -91,6 +94,7 @@ export default function ProjectExperimentLab({ projectId }: { projectId: string 
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error ?? "ثبت آزمایش انجام نشد.");
       setForm(emptyForm);
+      setEditingId(null);
       setOpen(false);
       await load();
     } catch (cause) {
@@ -100,6 +104,25 @@ export default function ProjectExperimentLab({ projectId }: { projectId: string 
     }
   }
 
+  function beginEdit(experiment: Experiment) {
+    setEditingId(experiment.id);
+    setForm({
+      title: experiment.title, datasetId: experiment.datasetId ?? "", status: experiment.status,
+      objective: experiment.objective, hypothesis: experiment.hypothesis, protocol: experiment.protocol,
+      materials: experiment.materials.join("، "), variables: experiment.variables.join("، "),
+      controls: experiment.controls, procedure: experiment.procedure,
+      observations: experiment.observations, conclusion: experiment.conclusion
+    });
+    setOpen(true);
+    setError("");
+  }
+
+  function closeForm() {
+    setOpen(false);
+    setEditingId(null);
+    setForm(emptyForm);
+  }
+
   return <section className="project-experiment-section">
     <header className="project-experiment-header">
       <div>
@@ -107,7 +130,7 @@ export default function ProjectExperimentLab({ projectId }: { projectId: string 
         <h2>دفتر آزمایش و پروتکل پژوهش</h2>
         <p>فرضیه، روش اجرا، متغیرها و مشاهدات را به‌صورت ساخت‌یافته ثبت کنید.</p>
       </div>
-      <button type="button" className="primary-button" onClick={() => setOpen((value) => !value)}>
+      <button type="button" className="primary-button" onClick={() => open ? closeForm() : (setEditingId(null), setForm(emptyForm), setOpen(true))}>
         {open ? "بستن فرم" : "ثبت آزمایش جدید"}
       </button>
     </header>
@@ -138,8 +161,8 @@ export default function ProjectExperimentLab({ projectId }: { projectId: string 
       <label>مشاهدات و داده‌های به‌دست‌آمده<textarea maxLength={20000} value={form.observations} onChange={(event) => setForm({ ...form, observations: event.target.value })} /></label>
       <label>نتیجه‌گیری<textarea maxLength={12000} value={form.conclusion} onChange={(event) => setForm({ ...form, conclusion: event.target.value })} /></label>
       <div className="project-experiment-form-actions">
-        <span>پس از ثبت، رکورد در تاریخچه فعالیت پروژه نیز ثبت می‌شود.</span>
-        <button className="primary-button" disabled={saving}>{saving ? "در حال ثبت..." : "ثبت در دفتر آزمایش"}</button>
+        <span>{editingId ? "ویرایش در تاریخچه فعالیت پروژه ثبت می‌شود." : "پس از ثبت، رکورد در تاریخچه فعالیت پروژه نیز ثبت می‌شود."}</span>
+        <button className="primary-button" disabled={saving}>{saving ? "در حال ذخیره..." : editingId ? "ذخیره تغییرات" : "ثبت در دفتر آزمایش"}</button>
       </div>
     </form>}
 
@@ -150,7 +173,10 @@ export default function ProjectExperimentLab({ projectId }: { projectId: string 
             <span className={`project-experiment-status status-${experiment.status}`}>{statusLabels[experiment.status]}</span>
             <time>{new Date(experiment.createdAt).toLocaleDateString("fa-IR")}</time>
           </div>
-          <h3>{experiment.title}</h3>
+          <div className="project-experiment-card-heading">
+            <h3>{experiment.title}</h3>
+            <button type="button" className="secondary-button" onClick={() => beginEdit(experiment)}>ویرایش آزمایش</button>
+          </div>
           {datasetTitle && <p className="project-experiment-dataset">مجموعه‌داده مرتبط: {datasetTitle}</p>}
           {experiment.objective && <div className="project-experiment-summary"><strong>هدف</strong><p>{experiment.objective}</p></div>}
           {experiment.hypothesis && <div className="project-experiment-summary"><strong>فرضیه</strong><p>{experiment.hypothesis}</p></div>}
